@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { Truck } from "lucide-react";
 import logo from "@/assets/am-logo-full.png.asset.json";
 import { safeUrl } from "@/lib/shared/sanitize";
 
@@ -25,17 +26,23 @@ export function Logo({
     <Link
       to="/"
       className="group flex items-center rounded-md focus-visible:focus-brand"
-      aria-label={`${name} home`}
+      // With the image logo the link needs an explicit name; the text fallback names itself
+      // (WCAG 2.5.3: the accessible name must contain the visible text).
+      aria-label={failed ? undefined : `${name} home`}
     >
       <span
         className={`inline-flex items-center rounded-md transition-colors ${light ? "bg-white/95 px-2 py-1 shadow-[0_4px_18px_-6px_rgba(0,0,0,0.45)]" : ""}`}
       >
         {failed ? (
-          <span className="flex items-center gap-2 px-1 py-1" aria-hidden="true">
-            <span className="grid h-8 w-8 place-items-center rounded-md bg-navy text-sm font-extrabold text-white">
-              AM
+          <span className="flex items-center gap-2 px-1 py-1">
+            <span
+              className="grid h-8 w-8 place-items-center rounded-md bg-navy text-white"
+              aria-hidden="true"
+            >
+              <Truck className="h-4 w-4" />
             </span>
             <span className="font-display text-base font-extrabold text-navy">{name}</span>
+            <span className="sr-only"> home</span>
           </span>
         ) : (
           <img
