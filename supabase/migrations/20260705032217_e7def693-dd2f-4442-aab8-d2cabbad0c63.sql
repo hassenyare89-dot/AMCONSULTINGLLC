@@ -1,0 +1,2 @@
+
+REVOKE EXECUTE ON FUNCTION public.claim_first_admin() FROM authenticated;

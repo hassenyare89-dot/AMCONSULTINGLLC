@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.x
+      - run: bun install --frozen-lockfile
+      - name: Typecheck (strict)
+        run: bunx tsc --noEmit
+      - name: Lint (errors only)
+        run: bunx eslint src tests --quiet
+      - name: Unit & authorization tests
+        run: bunx vitest run
+      - name: Database migration & RLS tests
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: ./scripts/test-db-ci.sh
+      - name: Dependency audit (high+)
+        run: bunx --bun npm audit --audit-level=high --omit=dev || echo "::warning::npm audit reported issues — review"
+      - name: Production build
+        run: bun run build
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+      - name: End-to-end & accessibility tests
+        run: bunx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
