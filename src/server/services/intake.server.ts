@@ -33,7 +33,7 @@ function parse<T>(
       v: unknown,
     ) =>
       | { success: true; data: T }
-      | { success: false; error: { issues: { message: string; path: (string | number)[] }[] } };
+      | { success: false; error: { issues: { message: string; path: readonly PropertyKey[] }[] } };
   },
   body: unknown,
 ): T {

@@ -38,7 +38,8 @@ export async function runOp(
       throw new Error(encodeError(err));
     }
     if (err && typeof err === "object" && "issues" in err) {
-      const issue = (err as { issues: { message: string; path: (string | number)[] }[] }).issues[0];
+      const issue = (err as { issues: { message: string; path: readonly PropertyKey[] }[] })
+        .issues[0];
       throw new Error(
         encodeError(
           new AppError(

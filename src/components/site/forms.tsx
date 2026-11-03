@@ -193,7 +193,9 @@ export function focusFirstError(errors: FieldErrors) {
   if (first) requestAnimationFrame(() => document.getElementById(`fld-${first}`)?.focus());
 }
 
-export function zodErrors(issues: { path: (string | number)[]; message: string }[]): FieldErrors {
+export function zodErrors(
+  issues: readonly { path: readonly PropertyKey[]; message: string }[],
+): FieldErrors {
   const out: FieldErrors = {};
   for (const i of issues) {
     const k = String(i.path[0] ?? "form");
