@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.2.x
+          bun-version: 1.4.4  # must match the version that wrote bun.lock (lockfileVersion 2)
       - run: bun install --frozen-lockfile
       - name: Typecheck (strict)
         run: bunx tsc --noEmit
@@ -39,11 +39,16 @@ jobs:
           PGPASSWORD: postgres
         run: ./scripts/test-db-ci.sh
       - name: Dependency audit (high+)
-        run: bunx --bun npm audit --audit-level=high --omit=dev || echo "::warning::npm audit reported issues — review"
+        run: bun audit --audit-level=high || echo "::warning::bun audit reported issues — review"
       - name: Production build
         run: bun run build
       - name: Install Playwright browser
         run: bunx playwright install --with-deps chromium
+      - name: Start dev server and warm routes
+        run: |
+          PORT=4173 ./scripts/dev-test-env.sh > dev-server.log 2>&1 &
+          for i in $(seq 1 90); do curl -sf -o /dev/null http://127.0.0.1:4173/ && break; sleep 2; done
+          node scripts/warmup.mjs http://127.0.0.1:4173
       - name: End-to-end & accessibility tests
         run: bunx playwright test
       - uses: actions/upload-artifact@v4
