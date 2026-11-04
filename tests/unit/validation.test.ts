@@ -8,17 +8,12 @@ import {
 const ts = Date.now() - 10_000;
 
 describe("public form contracts", () => {
-  it("contact accepts legacy payloads (backward compatible)", () => {
-    expect(
-      ContactSchema.safeParse({
-        name: "A",
-        email: "a@example.com",
-        phone: "",
-        message: "hello",
-        website: "",
-        ts,
-      }).success,
-    ).toBe(true);
+  it("contact requires a phone number", () => {
+    const base = { name: "A", email: "a@example.com", message: "hello", website: "", ts };
+    expect(ContactSchema.safeParse({ ...base, phone: "404-555-0101" }).success).toBe(true);
+    expect(ContactSchema.safeParse({ ...base, phone: "" }).success).toBe(false);
+    expect(ContactSchema.safeParse(base).success).toBe(false);
+    expect(ContactSchema.safeParse({ ...base, phone: "call me" }).success).toBe(false);
   });
   it("contact rejects bad email and oversize message", () => {
     expect(ContactSchema.safeParse({ name: "A", email: "nope", message: "x", ts }).success).toBe(
@@ -50,8 +45,10 @@ describe("public form contracts", () => {
       truckTypes: ["tandem", "tri-axle"],
       payloadCapacity: "15",
       payloadUnit: "tons",
-      serviceArea: "Fulton, DeKalb",
-      currentLocation: "Marietta",
+      counties: ["Fulton", "DeKalb"],
+      currentLocation: "100 Peachtree St NW, Atlanta, GA 30303",
+      cdlClass: "A",
+      insuranceActive: "yes",
       availability: ["weekdays", "weekends"],
       attestGeorgia: true,
       ts,
@@ -61,8 +58,17 @@ describe("public form contracts", () => {
     expect(ok.success && ok.data.truckCount).toBe(2);
     expect(ok.success && ok.data.payloadCapacity).toBe(15);
     expect(ok.success && ok.data.materials).toEqual([]);
+    expect(ok.success && ok.data.insuranceActive).toBe(true);
     const bad = (patch: object) =>
       DriverRegistrationSchema.safeParse({ ...base, ...patch }).success;
+    // counties: required, must be real Georgia counties
+    expect(bad({ counties: [] })).toBe(false);
+    expect(bad({ counties: ["Atlantis"] })).toBe(false);
+    expect(bad({ counties: ["Cook"] })).toBe(true);
+    // driver & insurance answers are required
+    expect(bad({ cdlClass: undefined })).toBe(false);
+    expect(bad({ insuranceActive: undefined })).toBe(false);
+    expect(bad({ insuranceActive: "no" })).toBe(true);
     // USDOT is now required, digits only
     expect(bad({ dotNumber: "" })).toBe(false);
     expect(bad({ dotNumber: "12AB" })).toBe(false);
@@ -88,12 +94,9 @@ describe("public form contracts", () => {
     // recommended fields
     const rec = DriverRegistrationSchema.safeParse({
       ...base,
-      cdlClass: "A",
-      insuranceActive: "yes",
       materials: ["gravel", "crush-and-run"],
       travelRadius: "statewide",
     });
-    expect(rec.success && rec.data.insuranceActive).toBe(true);
     expect(bad({ cdlClass: "C" })).toBe(false);
     expect(bad({ travelRadius: "500" })).toBe(false);
     expect(bad({ materials: ["uranium"] })).toBe(false);

@@ -37,6 +37,7 @@ services:
       args:
         VITE_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-}
         VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY:-}
+        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
     image: amcms-app:latest
     init: true
     restart: unless-stopped

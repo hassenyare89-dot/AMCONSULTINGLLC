@@ -9,6 +9,7 @@ test.describe("form validation (client)", () => {
     await expect(page.locator("#fld-name")).toBeFocused();
     await expect(page.locator("#fld-name")).toHaveAttribute("aria-invalid", "true");
     await expect(page.getByText("Please acknowledge the privacy notice")).toBeVisible();
+    await expect(page.getByText("Phone number is required")).toBeVisible();
   });
 
   test("driver registration validates USDOT digits and required fields", async ({ page }) => {
@@ -17,12 +18,30 @@ test.describe("form validation (client)", () => {
     await page.getByRole("button", { name: "Submit registration" }).click();
     await expect(page.getByText("USDOT number must be digits only")).toBeVisible();
     await expect(page.getByText("Owner / driver name is required")).toBeVisible();
-    await expect(page.getByText("Enter the city where the truck is now")).toBeVisible();
+    await expect(page.getByText("Enter the address or city where the truck is now")).toBeVisible();
+    await expect(page.getByText("Select at least one Georgia county")).toBeVisible();
+    await expect(page.getByText("Select the CDL class")).toBeVisible();
+    await expect(page.getByText("W-9: please attach this document.")).toBeVisible();
     await expect(page.getByText("Select at least one truck type")).toBeVisible();
     await expect(page.getByText("Select your availability")).toBeVisible();
     await expect(page.getByText(/confirm your truck is insured, registered/)).toBeVisible();
     // focus moves to the first invalid field
     await expect(page.locator("#fld-ownerName")).toBeFocused();
+  });
+
+  test("Georgia county picker searches and selects several counties", async ({ page }) => {
+    await gotoReady(page, "/drivers");
+    const box = page.locator("#fld-counties");
+    await box.fill("gwin");
+    await page.getByRole("option", { name: "Gwinnett County" }).click();
+    await box.fill("cob");
+    await box.press("Enter");
+    const chips = page.getByRole("list", { name: "Selected counties" });
+    await expect(chips).toContainText("Gwinnett");
+    await expect(chips).toContainText("Cobb");
+    await page.getByRole("button", { name: "Remove Gwinnett County" }).click();
+    await expect(chips).not.toContainText("Gwinnett");
+    await expect(page.locator('input[type=hidden][name="counties"]')).toHaveCount(1);
   });
 
   test("quote form requires consent", async ({ page }) => {
@@ -47,6 +66,7 @@ test.describe("public API hardening", () => {
   const valid = {
     name: "E2E",
     email: "e2e@example.com",
+    phone: "404-555-0100",
     message: "hello",
     website: "",
     ts: Date.now() - 10_000,

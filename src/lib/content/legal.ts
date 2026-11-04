@@ -31,7 +31,7 @@ const privacy = `${DRAFT_BANNER}
 <ul>
 <li><strong>DigitalOcean</strong> — cloud server hosting for this website, its database and stored files (United States).</li>
 <li><strong>Resend</strong> — transactional email delivery (when enabled).</li>
-<li><strong>OpenStreetMap Nominatim</strong> — if you use the address search on the contact form, the text you type is sent from your browser to this service to suggest addresses.</li>
+<li><strong>Address search (OpenStreetMap Nominatim, or Google Maps Platform where enabled)</strong> — if you use the address search on our forms (for example the quote form or the truck location on the driver registration), the text you type — and your device location if you choose "Use my location" — is sent from your browser to this service to suggest addresses.</li>
 <li><strong>Google Maps</strong> — the contact page map loads from Google only after you choose to show it; Google may then set its own cookies.</li>
 </ul>
 <p>We may also disclose information if required by law or to protect our rights, and to a successor in a business transfer. [Company to confirm any other recipients.]</p>
