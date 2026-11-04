@@ -14,7 +14,7 @@ import { emailButton, emailLayout, sendEmail, e } from "../email.server";
 import { issueDriverStatusLink } from "./intake.server";
 
 const COLS =
-  "id,created_at,updated_at,owner_name,company_name,email,phone,dot_number,mc_number,truck_type,truck_count,service_area,availability,notes,status,reviewer_id,archived_at,consent_privacy,consent_contact,info_request_note,decision_note,decided_at";
+  "id,created_at,updated_at,owner_name,company_name,email,phone,dot_number,mc_number,truck_type,truck_count,payload_capacity,payload_unit,current_location,service_area,availability,travel_radius,cdl_class,insurance_active,preferred_materials,georgia_attested,georgia_attested_at,notes,status,reviewer_id,archived_at,consent_privacy,consent_contact,info_request_note,decision_note,decided_at";
 
 export const ListApplicationsInput = z.object({
   search: z.string().max(200).optional().default(""),
@@ -38,12 +38,14 @@ function filtered(p: z.infer<typeof ListApplicationsInput>, cols = COLS) {
       throw new AppError("VALIDATION", "Invalid status");
     q = q.eq("status", p.status);
   } else if (!p.includeArchived) q = q.neq("status", "archived");
-  if (p.availability) q = q.eq("availability", p.availability);
-  if (p.truckType) q = q.eq("truck_type", p.truckType);
+  // Multi-select values are stored comma-separated; option values never overlap as substrings.
+  const opt = (v: string) => sanitizeSearchTerm(v).replace(/[^a-z-]/g, "");
+  if (p.availability) q = q.ilike("availability", `%${opt(p.availability)}%`);
+  if (p.truckType) q = q.ilike("truck_type", `%${opt(p.truckType)}%`);
   if (p.reviewerId)
     q = p.reviewerId === "__none" ? q.is("reviewer_id", null) : q.eq("reviewer_id", p.reviewerId);
   const area = sanitizeSearchTerm(p.serviceArea);
-  if (area) q = q.ilike("service_area", `%${area}%`);
+  if (area) q = q.or(`service_area.ilike.%${area}%,current_location.ilike.%${area}%`);
   const s = sanitizeSearchTerm(p.search);
   if (s)
     q = q.or(
@@ -284,7 +286,7 @@ export async function exportApplications(ctx: StaffContext, input: unknown) {
   requirePermission(ctx, "drivers.export");
   const p = ListApplicationsInput.parse({ ...(input as object), page: 1, pageSize: 500 });
   const cols =
-    "id,created_at,status,owner_name,company_name,email,phone,dot_number,mc_number,truck_type,truck_count,service_area,availability";
+    "id,created_at,status,owner_name,company_name,email,phone,dot_number,mc_number,truck_type,truck_count,payload_capacity,payload_unit,current_location,service_area,availability,travel_radius,cdl_class,insurance_active,preferred_materials,georgia_attested";
   const rows = (check(await filtered(p, cols).range(0, 4999), "Exporting") ??
     []) as unknown as Record<string, unknown>[];
   const header = cols.split(",");

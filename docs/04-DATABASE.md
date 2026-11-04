@@ -18,6 +18,7 @@ Plain **PostgreSQL 16** (14+ works), self-hosted in Docker. No Supabase.
 | `20260630…`–`20260705…` (5 files) | **Original** — `app_role`, `user_roles`, `has_role`, `claim_first_admin`, `driver_registrations`, deny policies |
 | `20261102000100_rbac_role_values.sql` | Adds 6 roles to `app_role` (separate file: enum values must commit before use) |
 | `20261102000200_amcms_schema.sql` | All AMCMS tables, constraints, indexes, triggers, RLS, storage bucket rows, rate limiter |
+| `20261104000100_driver_registration_georgia.sql` | Georgia dump truck form: payload capacity/unit, current truck location, CDL class, insurance active, preferred materials, travel radius, Georgia attestation (all nullable; old rows kept); `single-axle` fleet type; attestation consent type |
 
 Both new migrations are **additive and idempotent** (verified by applying the AMCMS migration twice in
 `scripts/test-db.sh`). Existing rows are preserved: `driver_registrations` gains columns, `dot_number`

@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { CheckCircle2, ClipboardList, FileCheck, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AVAILABILITY, TRUCK_TYPES, labelFor } from "@/lib/shared/domain";
+import { AVAILABILITY, TRUCK_TYPES, labelsFor } from "@/lib/shared/domain";
 import { useSiteContent } from "@/lib/content/site";
 import { DRIVER_STORAGE_KEY } from "@/components/site/DriverRegistration";
 
@@ -14,8 +14,11 @@ type Summary = {
   mcNumber?: string;
   truckType: string;
   truckCount: number;
+  payload?: string;
+  currentLocation?: string;
   serviceArea: string;
   availability: string;
+  documents?: string[];
   id?: string | null;
   statusUrl?: string | null;
 };
@@ -74,9 +77,18 @@ function ConfirmationPage() {
               ["Company", summary.companyName || "—"],
               ["USDOT", summary.dotNumber || "Not provided"],
               ["MC", summary.mcNumber || "Not provided"],
-              ["Truck", `${labelFor(TRUCK_TYPES, summary.truckType)} × ${summary.truckCount}`],
-              ["Service area", summary.serviceArea],
-              ["Availability", labelFor(AVAILABILITY, summary.availability)],
+              [
+                "Dump trucks",
+                `${summary.truckCount} × ${labelsFor(TRUCK_TYPES, summary.truckType)}`,
+              ],
+              ["Payload capacity", summary.payload || "—"],
+              ["Current location", summary.currentLocation || "—"],
+              ["Service area (GA)", summary.serviceArea],
+              ["Availability", labelsFor(AVAILABILITY, summary.availability)],
+              [
+                "Documents received",
+                summary.documents?.length ? summary.documents.join(", ") : "None yet",
+              ],
             ].map(([k, v]) => (
               <div key={k}>
                 <dt className="text-xs uppercase tracking-wider text-muted-foreground">{k}</dt>

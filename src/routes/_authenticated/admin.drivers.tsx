@@ -32,6 +32,10 @@ import {
   DRIVER_APP_STATUS_OPTIONS,
   DRIVER_APP_TRANSITIONS,
   TRUCK_TYPES,
+  PAYLOAD_UNITS,
+  TRAVEL_RADIUS,
+  MATERIALS,
+  labelsFor,
   labelFor,
   type DriverAppStatus,
 } from "@/lib/shared/domain";
@@ -157,11 +161,11 @@ function Applications({
           </div>
         </div>
         <div>
-          <Label htmlFor="app-area">Service area</Label>
+          <Label htmlFor="app-area">Location / service area</Label>
           <input
             id="app-area"
             className={cn(inputCls, "mt-1")}
-            placeholder="Atlanta"
+            placeholder="County or city"
             value={filters.serviceArea}
             onChange={(e) => set("serviceArea", e.target.value)}
           />
@@ -241,8 +245,8 @@ function Applications({
                   "Owner",
                   "Contact",
                   "USDOT / MC",
-                  "Truck",
-                  "Service area",
+                  "Trucks",
+                  "Location / area",
                   "Availability",
                   "Status",
                 ].map((h) => (
@@ -286,10 +290,20 @@ function Applications({
                     {r.mc_number ? ` / ${r.mc_number}` : ""}
                   </td>
                   <td className="px-4 py-3">
-                    {labelFor(TRUCK_TYPES, r.truck_type)} × {r.truck_count}
+                    {r.truck_count} × {labelsFor(TRUCK_TYPES, r.truck_type)}
+                    {r.payload_capacity && (
+                      <div className="text-xs text-muted-foreground">
+                        {r.payload_capacity} {labelFor(PAYLOAD_UNITS, r.payload_unit).toLowerCase()}
+                      </div>
+                    )}
                   </td>
-                  <td className="px-4 py-3">{r.service_area}</td>
-                  <td className="px-4 py-3">{labelFor(AVAILABILITY, r.availability)}</td>
+                  <td className="px-4 py-3">
+                    {r.current_location && <div className="font-medium">{r.current_location}</div>}
+                    <div className={r.current_location ? "text-xs text-muted-foreground" : ""}>
+                      {r.service_area}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">{labelsFor(AVAILABILITY, r.availability)}</td>
                   <td className="px-4 py-3">
                     <StatusBadge
                       value={r.status}
@@ -396,10 +410,30 @@ function ApplicationDetail({ id }: { id: string }) {
             ],
             ["USDOT", a.dot_number || "Not provided"],
             ["MC", a.mc_number || "Not provided"],
-            ["Truck type", labelFor(TRUCK_TYPES, a.truck_type)],
-            ["Truck count", a.truck_count],
-            ["Service area", a.service_area],
-            ["Availability", labelFor(AVAILABILITY, a.availability)],
+            ["Number of dump trucks", a.truck_count],
+            ["Truck type", labelsFor(TRUCK_TYPES, a.truck_type)],
+            [
+              "Payload capacity",
+              a.payload_capacity
+                ? `${a.payload_capacity} ${labelFor(PAYLOAD_UNITS, a.payload_unit).toLowerCase()}`
+                : "—",
+            ],
+            ["Current truck location", a.current_location || "—"],
+            ["Service area (GA)", a.service_area],
+            ["Availability", labelsFor(AVAILABILITY, a.availability)],
+            ["Willing to travel", labelFor(TRAVEL_RADIUS, a.travel_radius)],
+            ["CDL class", a.cdl_class ? `Class ${a.cdl_class}` : "—"],
+            [
+              "Insurance active",
+              a.insurance_active == null ? "—" : a.insurance_active ? "Yes" : "No",
+            ],
+            ["Preferred material", labelsFor(MATERIALS, a.preferred_materials)],
+            [
+              "Georgia operating attestation",
+              a.georgia_attested
+                ? `Confirmed ${new Date(a.georgia_attested_at).toLocaleString()}`
+                : "Not recorded (older form)",
+            ],
             [
               "Privacy notice acknowledged",
               a.consent_privacy == null

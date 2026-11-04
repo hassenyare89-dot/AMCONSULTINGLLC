@@ -66,3 +66,15 @@ Deactivate departing staff immediately (User Management → Manage → Deactivat
 * Forgotten password: **/auth/reset** emails a one-time link (needs `RESEND_API_KEY`). Without email, re-run
   `create-admin.mjs` for that address (Super Admins) or re-invite from **Users**.
 * Inviting staff without email configured: the invite sheet shows a one-time link to pass on securely.
+
+## Driver registrations (Georgia form)
+
+The public form at **/drivers** collects what dispatch needs: USDOT (required), truck count and
+types, **payload capacity**, **current truck location**, Georgia counties served, availability and
+travel radius, plus optional CDL class, insurance status and preferred materials. Applicants must
+confirm their truck is insured, registered and authorized to operate in Georgia (stored with a
+timestamp). Optional uploads (CDL, insurance certificate, W-9, truck registration) appear in the
+application's **Documents** tab — CDL and W-9 are *restricted* (only roles with restricted-document
+access can open them); insurance and registration are *confidential*. Uploaded files are checked by
+content (PDF/JPG/PNG/WebP, 10 MB each) but **not virus-scanned** — open them with care. The list can be
+filtered by truck type, availability and location / service area.

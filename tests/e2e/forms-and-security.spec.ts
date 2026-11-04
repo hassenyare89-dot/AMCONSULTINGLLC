@@ -16,7 +16,13 @@ test.describe("form validation (client)", () => {
     await page.locator("#fld-dotNumber").fill("12AB");
     await page.getByRole("button", { name: "Submit registration" }).click();
     await expect(page.getByText("USDOT number must be digits only")).toBeVisible();
-    await expect(page.getByText("Owner name is required")).toBeVisible();
+    await expect(page.getByText("Owner / driver name is required")).toBeVisible();
+    await expect(page.getByText("Enter the city where the truck is now")).toBeVisible();
+    await expect(page.getByText("Select at least one truck type")).toBeVisible();
+    await expect(page.getByText("Select your availability")).toBeVisible();
+    await expect(page.getByText(/confirm your truck is insured, registered/)).toBeVisible();
+    // focus moves to the first invalid field
+    await expect(page.locator("#fld-ownerName")).toBeFocused();
   });
 
   test("quote form requires consent", async ({ page }) => {

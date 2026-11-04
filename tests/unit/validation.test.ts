@@ -40,24 +40,63 @@ describe("public form contracts", () => {
       }).success,
     ).toBe(false);
   });
-  it("driver registration: USDOT optional but digits only", () => {
+  it("driver registration (Georgia): required dispatch fields, multi-selects, attestation", () => {
     const base = {
       ownerName: "Sam",
       email: "s@example.com",
       phone: "4045551234",
-      truckType: "tandem",
+      dotNumber: "1234567",
       truckCount: "2",
-      serviceArea: "Atlanta",
-      availability: "full-time",
+      truckTypes: ["tandem", "tri-axle"],
+      payloadCapacity: "15",
+      payloadUnit: "tons",
+      serviceArea: "Fulton, DeKalb",
+      currentLocation: "Marietta",
+      availability: ["weekdays", "weekends"],
+      attestGeorgia: true,
       ts,
     };
-    expect(DriverRegistrationSchema.safeParse(base).success).toBe(true);
-    expect(DriverRegistrationSchema.safeParse({ ...base, dotNumber: "12AB" }).success).toBe(false);
-    expect(DriverRegistrationSchema.safeParse({ ...base, truckType: "bulldozer" }).success).toBe(
-      false,
-    );
-    const r = DriverRegistrationSchema.safeParse(base);
-    expect(r.success && r.data.truckCount).toBe(2);
+    const ok = DriverRegistrationSchema.safeParse(base);
+    expect(ok.success).toBe(true);
+    expect(ok.success && ok.data.truckCount).toBe(2);
+    expect(ok.success && ok.data.payloadCapacity).toBe(15);
+    expect(ok.success && ok.data.materials).toEqual([]);
+    const bad = (patch: object) =>
+      DriverRegistrationSchema.safeParse({ ...base, ...patch }).success;
+    // USDOT is now required, digits only
+    expect(bad({ dotNumber: "" })).toBe(false);
+    expect(bad({ dotNumber: "12AB" })).toBe(false);
+    // dispatch essentials
+    expect(bad({ currentLocation: "" })).toBe(false);
+    expect(bad({ payloadCapacity: "" })).toBe(false);
+    expect(bad({ payloadCapacity: "0" })).toBe(false);
+    expect(bad({ payloadUnit: "pounds" })).toBe(false);
+    expect(bad({ truckTypes: [] })).toBe(false);
+    expect(bad({ truckTypes: ["bulldozer"] })).toBe(false);
+    expect(bad({ availability: [] })).toBe(false);
+    expect(bad({ availability: ["full-time"] })).toBe(false); // legacy value no longer offered
+    // attestation must be checked
+    expect(bad({ attestGeorgia: false })).toBe(false);
+    // a single value (not an array) is accepted for multi-selects; duplicates collapse
+    const one = DriverRegistrationSchema.safeParse({
+      ...base,
+      truckTypes: "quad-axle",
+      availability: ["today", "today"],
+    });
+    expect(one.success && one.data.truckTypes).toEqual(["quad-axle"]);
+    expect(one.success && one.data.availability).toEqual(["today"]);
+    // recommended fields
+    const rec = DriverRegistrationSchema.safeParse({
+      ...base,
+      cdlClass: "A",
+      insuranceActive: "yes",
+      materials: ["gravel", "crush-and-run"],
+      travelRadius: "statewide",
+    });
+    expect(rec.success && rec.data.insuranceActive).toBe(true);
+    expect(bad({ cdlClass: "C" })).toBe(false);
+    expect(bad({ travelRadius: "500" })).toBe(false);
+    expect(bad({ materials: ["uranium"] })).toBe(false);
   });
   it("quote request requires consent and a known service", () => {
     const base = {
