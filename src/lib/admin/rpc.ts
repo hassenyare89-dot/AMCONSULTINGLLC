@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from "@ta
 import { toast } from "sonner";
 import { adminRpc } from "@/lib/api/rpc.functions";
 import { decodeError, type AppErrorCode } from "@/lib/shared/errors";
-import { supabase } from "@/integrations/supabase/client";
 
 export class RpcError extends Error {
   code: AppErrorCode;
@@ -75,22 +74,19 @@ export function downloadText(filename: string, text: string, type = "text/csv;ch
   URL.revokeObjectURL(url);
 }
 
-/** Multipart upload to /api/admin/upload with the current session token. */
+/** Multipart upload to /api/admin/upload (authenticated by the session cookie). */
 export async function uploadFile(
   target: "media" | "document",
   file: File,
   extra: Record<string, string> = {},
 ) {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new RpcError("UNAUTHENTICATED", "Please sign in again.");
   const fd = new FormData();
   fd.append("file", file);
   fd.append("target", target);
   for (const [k, v] of Object.entries(extra)) fd.append(k, v);
   const res = await fetch("/api/admin/upload", {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
+    credentials: "same-origin",
     body: fd,
   });
   const json = (await res.json().catch(() => ({}))) as {

@@ -46,7 +46,6 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-three/drei": "^10.7.0",
     "@react-three/fiber": "^9.3.0",
-    "@supabase/supabase-js": "^2.108.2",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/react-query": "^5.101.1",
     "@tanstack/react-router": "1.170.41",
@@ -75,7 +74,8 @@
     "vaul": "^1.1.2",
     "vite-tsconfig-paths": "^6.0.2",
     "xss": "^1.0.15",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
@@ -100,7 +100,6 @@
     "globals": "^15.15.0",
     "jsdom": "^26.1.0",
     "nitro": "3.0.260603-beta",
-    "pg": "^8.16.3",
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",

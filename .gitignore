@@ -39,3 +39,9 @@ dist-ssr
 # Test output
 test-results/
 playwright-report/
+
+# Local file storage (uploads) and deployment secrets
+.storage/
+.scripts/
+.env
+backups/

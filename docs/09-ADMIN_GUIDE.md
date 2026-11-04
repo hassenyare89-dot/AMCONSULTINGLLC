@@ -2,16 +2,14 @@
 
 ## First-time setup (once)
 
-1. Apply database migrations (docs/07 → Release procedure).
-2. In Supabase → Authentication: **disable sign-ups**, enable **TOTP MFA**, set the Site URL and redirect
-   URL (`https://amconsultingllc.net/auth/update-password`).
-3. Create the first administrator:
-   * Supabase → Authentication → Users → **Invite user** (or Add user) with the owner's email.
-   * Set the secret `BOOTSTRAP_SUPER_ADMIN_EMAIL=<that email>` and deploy.
-   * The owner signs in at **/auth**, enrols an authenticator app, and is granted **Super Admin** automatically
-     (only if no super admin exists yet).
-   * Remove `BOOTSTRAP_SUPER_ADMIN_EMAIL` and redeploy.
-   * *Alternative (SQL editor):* `insert into user_roles (user_id, role) select id, 'super_admin' from auth.users where email = 'owner@…';`
+1. Deploy the stack (docs/12-DEPLOY_DIGITALOCEAN.md). Migrations apply automatically.
+2. There is **no public sign-up**: accounts exist only when an administrator (or the server console)
+   creates them.
+3. Create the first administrator on the server:
+   `docker compose exec app node scripts/create-admin.mjs owner@amconsultingllc.net "Owner Name"`
+   * It prints a one-time link (24 h). The owner opens it, chooses a password (12+ characters), then
+     scans the QR code with an authenticator app. They are now **Super Admin**.
+   * Run it again any time to re-issue a link (e.g. the first one expired).
    * Existing users holding the legacy `admin` role keep full Admin access.
 4. AMCMS → **System Settings**: consultation hours, internal email recipients, estimate defaults, session timeout.
 5. AMCMS → **Website CMS**: verify **Brand & contact details** (legal name!), review legal drafts after counsel
@@ -62,5 +60,9 @@ Deactivate departing staff immediately (User Management → Manage → Deactivat
   saved); "failed" shows the provider error.
 * Security & Audit Logs → **Sign-ins**: failed/blocked attempts.
 * Errors in AMCMS show a short reference (request id) — give it to your developer to find the server log line.
-* Lost authenticator: a Super Admin removes the user's MFA factor in Supabase → Authentication → Users; the user
-  re-enrols at next sign-in.
+* Lost authenticator: a Super Admin opens **Users → (person) → Reset two-step verification**; the person
+  re-enrols at next sign-in. If the only Super Admin is locked out, run on the server:
+  `docker compose exec app node scripts/create-admin.mjs --reset-mfa their@email`.
+* Forgotten password: **/auth/reset** emails a one-time link (needs `RESEND_API_KEY`). Without email, re-run
+  `create-admin.mjs` for that address (Super Admins) or re-invite from **Users**.
+* Inviting staff without email configured: the invite sheet shows a one-time link to pass on securely.

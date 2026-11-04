@@ -1,0 +1,16 @@
+node_modules
+.output
+.vinxi
+.tanstack
+.nitro
+.storage
+backups
+.git
+.env
+.env.*
+!.env.example
+playwright-report
+test-results
+*.log
+*.zip
+.scripts

@@ -29,8 +29,7 @@ const privacy = `${DRAFT_BANNER}
 <p>We do not sell personal information and do not use it for targeted advertising. We do not send marketing text messages.</p>
 <h2>Service providers we share information with</h2>
 <ul>
-<li><strong>Supabase</strong> — database, authentication and file storage hosting.</li>
-<li><strong>Cloudflare</strong> — website hosting, content delivery and security.</li>
+<li><strong>DigitalOcean</strong> — cloud server hosting for this website, its database and stored files (United States).</li>
 <li><strong>Resend</strong> — transactional email delivery (when enabled).</li>
 <li><strong>OpenStreetMap Nominatim</strong> — if you use the address search on the contact form, the text you type is sent from your browser to this service to suggest addresses.</li>
 <li><strong>Google Maps</strong> — the contact page map loads from Google only after you choose to show it; Google may then set its own cookies.</li>
@@ -90,8 +89,7 @@ const cookies = `${DRAFT_BANNER}
 <h2>What is stored on your device</h2>
 <ul>
 <li><strong>Visitors:</strong> we store a short-lived item in your browser's session storage to show your driver-registration confirmation page. It is removed when you close the tab. Your reduced-motion and hero-playback preferences may be saved in local storage.</li>
-<li><strong>Staff sign-in:</strong> authorised staff who sign in to the management system have their authentication session stored in local storage.</li>
-<li><strong>Cloudflare:</strong> our hosting and security provider may set strictly necessary cookies (for example, to detect malicious traffic).</li>
+<li><strong>Staff sign-in:</strong> authorised staff who sign in to the management system receive a strictly necessary session cookie (<code>amcms_session</code>) that keeps them signed in for up to 12 hours.</li>
 <li><strong>Google Maps (optional):</strong> the contact page map is not loaded until you click "Show map". If you do, Google may set cookies under its own policies.</li>
 </ul>
 <h2>Managing storage</h2>

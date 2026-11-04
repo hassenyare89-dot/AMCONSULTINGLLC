@@ -43,19 +43,7 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
  * 'unsafe-inline' until nonce support is wired (tracked in docs/06-SECURITY.md).
  * 'wasm-unsafe-eval' is not required. Lovable editor origins may frame previews only.
  */
-function supabaseOrigin(): string {
-  try {
-    return process.env.SUPABASE_URL
-      ? new URL(process.env.SUPABASE_URL).origin
-      : "https://*.supabase.co";
-  } catch {
-    return "https://*.supabase.co";
-  }
-}
-
 export function securityHeaders(https = true): Record<string, string> {
-  const sb = supabaseOrigin();
-  const sbWs = sb.replace(/^https:/, "wss:");
   const csp = [
     "default-src 'self'",
     "base-uri 'self'",
@@ -63,9 +51,9 @@ export function securityHeaders(https = true): Record<string, string> {
     `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    `img-src 'self' data: blob: ${sb} https:`,
-    `media-src 'self' blob: ${sb} https:`,
-    `connect-src 'self' ${sb} ${sbWs} https://nominatim.openstreetmap.org https://challenges.cloudflare.com`,
+    "img-src 'self' data: blob: https:",
+    "media-src 'self' blob: https:",
+    "connect-src 'self' https://nominatim.openstreetmap.org https://challenges.cloudflare.com",
     "frame-src https://www.google.com https://challenges.cloudflare.com",
     "worker-src 'self' blob:",
     "form-action 'self'",

@@ -1,18 +1,21 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { completeToken, signIn } from "@/lib/auth/client";
+import { stringParams } from "@/lib/shared/search";
 import { passwordProblems } from "@/lib/shared/password";
 import { Field, FormError, fieldCls } from "@/components/site/forms";
 import { AuthCard } from "@/components/site/AuthCard";
 
-/** Landing page for password-recovery and invitation links (Supabase puts the session in the URL). */
+/** Landing page for password-reset and invitation links (one-time token in the URL). */
 export const Route = createFileRoute("/auth/update-password")({
   ssr: false,
+  validateSearch: stringParams("token", "invite"),
   head: () => ({
     meta: [
       { title: "Set password | AM Consulting LLC" },
       { name: "robots", content: "noindex,nofollow" },
+      { name: "referrer", content: "no-referrer" },
     ],
   }),
   component: UpdatePasswordPage,
@@ -20,28 +23,15 @@ export const Route = createFileRoute("/auth/update-password")({
 
 function UpdatePasswordPage() {
   const navigate = useNavigate();
-  const [ready, setReady] = useState(false);
-  const [email, setEmail] = useState("");
+  const { token, invite } = Route.useSearch();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session) {
-        setReady(true);
-        setEmail(session.user.email ?? "");
-      }
-    });
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        setReady(true);
-        setEmail(data.session.user.email ?? "");
-      }
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
   return (
-    <AuthCard title="Choose a password" subtitle={email ? `For ${email}` : undefined}>
-      {!ready ? (
+    <AuthCard
+      title={invite ? "Activate your account" : "Choose a password"}
+      subtitle={invite ? "Set a password to finish setting up your AMCMS account." : undefined}
+    >
+      {!token ? (
         <p className="mt-6 text-sm text-muted-foreground">
           Open this page from the link in your email. Links expire after a short time — request a
           new one if needed.
@@ -54,13 +44,19 @@ function UpdatePasswordPage() {
             const fd = new FormData(e.currentTarget);
             const pw = String(fd.get("password") ?? "");
             if (pw !== String(fd.get("confirm") ?? "")) return setError("Passwords don't match.");
-            const problems = passwordProblems(pw, email);
+            const problems = passwordProblems(pw);
             if (problems.length) return setError(problems[0]);
             setBusy(true);
-            const { error } = await supabase.auth.updateUser({ password: pw });
-            setBusy(false);
-            if (error) return setError(error.message);
-            navigate({ to: "/admin" });
+            setError(null);
+            try {
+              const r = await completeToken(token, pw);
+              await signIn(r.email, pw);
+              navigate({ to: "/admin" });
+            } catch (err) {
+              setError((err as Error).message || "Could not save your password.");
+            } finally {
+              setBusy(false);
+            }
           }}
         >
           <Field label="New password" name="password" required help="At least 12 characters.">

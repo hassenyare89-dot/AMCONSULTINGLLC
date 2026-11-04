@@ -23,6 +23,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WhoWeServeRouteImport } from './routes/who-we-serve'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
 import { Route as AuthUpdatePasswordRouteImport } from './routes/auth.update-password'
@@ -54,8 +55,14 @@ import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as ApiAdminUploadRouteImport } from './routes/api/admin/upload'
+import { Route as ApiAuthCompleteRouteImport } from './routes/api/auth/complete'
+import { Route as ApiAuthMfaEnrollRouteImport } from './routes/api/auth/mfa-enroll'
+import { Route as ApiAuthMfaVerifyRouteImport } from './routes/api/auth/mfa-verify'
+import { Route as ApiAuthPasswordRouteImport } from './routes/api/auth/password'
 import { Route as ApiAuthResetRouteImport } from './routes/api/auth/reset'
+import { Route as ApiAuthSessionRouteImport } from './routes/api/auth/session'
 import { Route as ApiAuthSignInRouteImport } from './routes/api/auth/sign-in'
+import { Route as ApiAuthSignOutRouteImport } from './routes/api/auth/sign-out'
 import { Route as ApiCronMaintenanceRouteImport } from './routes/api/cron/maintenance'
 import { Route as ApiPublicAppointmentManageRouteImport } from './routes/api/public/appointment-manage'
 import { Route as ApiPublicAppointmentsRouteImport } from './routes/api/public/appointments'
@@ -65,6 +72,8 @@ import { Route as ApiPublicDriverStatusRouteImport } from './routes/api/public/d
 import { Route as ApiPublicPrivacyRequestRouteImport } from './routes/api/public/privacy-request'
 import { Route as ApiPublicQuoteRouteImport } from './routes/api/public/quote'
 import { Route as ApiPublicQuoteViewRouteImport } from './routes/api/public/quote-view'
+import { Route as FilesDocumentsSplatRouteImport } from './routes/files.documents.$'
+import { Route as FilesMediaSplatRouteImport } from './routes/files.media.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -134,6 +143,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthIndexRoute = AuthIndexRouteImport.update({
   id: '/auth/',
@@ -301,14 +315,44 @@ const ApiAdminUploadRoute = ApiAdminUploadRouteImport.update({
   path: '/api/admin/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthCompleteRoute = ApiAuthCompleteRouteImport.update({
+  id: '/api/auth/complete',
+  path: '/api/auth/complete',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthMfaEnrollRoute = ApiAuthMfaEnrollRouteImport.update({
+  id: '/api/auth/mfa-enroll',
+  path: '/api/auth/mfa-enroll',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthMfaVerifyRoute = ApiAuthMfaVerifyRouteImport.update({
+  id: '/api/auth/mfa-verify',
+  path: '/api/auth/mfa-verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthPasswordRoute = ApiAuthPasswordRouteImport.update({
+  id: '/api/auth/password',
+  path: '/api/auth/password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthResetRoute = ApiAuthResetRouteImport.update({
   id: '/api/auth/reset',
   path: '/api/auth/reset',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthSessionRoute = ApiAuthSessionRouteImport.update({
+  id: '/api/auth/session',
+  path: '/api/auth/session',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSignInRoute = ApiAuthSignInRouteImport.update({
   id: '/api/auth/sign-in',
   path: '/api/auth/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthSignOutRoute = ApiAuthSignOutRouteImport.update({
+  id: '/api/auth/sign-out',
+  path: '/api/auth/sign-out',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCronMaintenanceRoute = ApiCronMaintenanceRouteImport.update({
@@ -357,6 +401,16 @@ const ApiPublicQuoteViewRoute = ApiPublicQuoteViewRouteImport.update({
   path: '/api/public/quote-view',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FilesDocumentsSplatRoute = FilesDocumentsSplatRouteImport.update({
+  id: '/files/documents/$',
+  path: '/files/documents/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FilesMediaSplatRoute = FilesMediaSplatRouteImport.update({
+  id: '/files/media/$',
+  path: '/files/media/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -372,6 +426,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/who-we-serve': typeof WhoWeServeRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/api/health': typeof ApiHealthRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/update-password': typeof AuthUpdatePasswordRoute
   '/book/manage': typeof BookManageRoute
@@ -402,8 +457,14 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
+  '/api/auth/complete': typeof ApiAuthCompleteRoute
+  '/api/auth/mfa-enroll': typeof ApiAuthMfaEnrollRoute
+  '/api/auth/mfa-verify': typeof ApiAuthMfaVerifyRoute
+  '/api/auth/password': typeof ApiAuthPasswordRoute
   '/api/auth/reset': typeof ApiAuthResetRoute
+  '/api/auth/session': typeof ApiAuthSessionRoute
   '/api/auth/sign-in': typeof ApiAuthSignInRoute
+  '/api/auth/sign-out': typeof ApiAuthSignOutRoute
   '/api/cron/maintenance': typeof ApiCronMaintenanceRoute
   '/api/public/appointment-manage': typeof ApiPublicAppointmentManageRoute
   '/api/public/appointments': typeof ApiPublicAppointmentsRoute
@@ -413,6 +474,8 @@ export interface FileRoutesByFullPath {
   '/api/public/privacy-request': typeof ApiPublicPrivacyRequestRoute
   '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/quote-view': typeof ApiPublicQuoteViewRoute
+  '/files/documents/$': typeof FilesDocumentsSplatRoute
+  '/files/media/$': typeof FilesMediaSplatRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -428,6 +491,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/who-we-serve': typeof WhoWeServeRoute
+  '/api/health': typeof ApiHealthRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/update-password': typeof AuthUpdatePasswordRoute
   '/book/manage': typeof BookManageRoute
@@ -458,8 +522,14 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
+  '/api/auth/complete': typeof ApiAuthCompleteRoute
+  '/api/auth/mfa-enroll': typeof ApiAuthMfaEnrollRoute
+  '/api/auth/mfa-verify': typeof ApiAuthMfaVerifyRoute
+  '/api/auth/password': typeof ApiAuthPasswordRoute
   '/api/auth/reset': typeof ApiAuthResetRoute
+  '/api/auth/session': typeof ApiAuthSessionRoute
   '/api/auth/sign-in': typeof ApiAuthSignInRoute
+  '/api/auth/sign-out': typeof ApiAuthSignOutRoute
   '/api/cron/maintenance': typeof ApiCronMaintenanceRoute
   '/api/public/appointment-manage': typeof ApiPublicAppointmentManageRoute
   '/api/public/appointments': typeof ApiPublicAppointmentsRoute
@@ -469,6 +539,8 @@ export interface FileRoutesByTo {
   '/api/public/privacy-request': typeof ApiPublicPrivacyRequestRoute
   '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/quote-view': typeof ApiPublicQuoteViewRoute
+  '/files/documents/$': typeof FilesDocumentsSplatRoute
+  '/files/media/$': typeof FilesMediaSplatRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -487,6 +559,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/who-we-serve': typeof WhoWeServeRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/api/health': typeof ApiHealthRoute
   '/auth/reset': typeof AuthResetRoute
   '/auth/update-password': typeof AuthUpdatePasswordRoute
   '/book/manage': typeof BookManageRoute
@@ -517,8 +590,14 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
+  '/api/auth/complete': typeof ApiAuthCompleteRoute
+  '/api/auth/mfa-enroll': typeof ApiAuthMfaEnrollRoute
+  '/api/auth/mfa-verify': typeof ApiAuthMfaVerifyRoute
+  '/api/auth/password': typeof ApiAuthPasswordRoute
   '/api/auth/reset': typeof ApiAuthResetRoute
+  '/api/auth/session': typeof ApiAuthSessionRoute
   '/api/auth/sign-in': typeof ApiAuthSignInRoute
+  '/api/auth/sign-out': typeof ApiAuthSignOutRoute
   '/api/cron/maintenance': typeof ApiCronMaintenanceRoute
   '/api/public/appointment-manage': typeof ApiPublicAppointmentManageRoute
   '/api/public/appointments': typeof ApiPublicAppointmentsRoute
@@ -528,6 +607,8 @@ export interface FileRoutesById {
   '/api/public/privacy-request': typeof ApiPublicPrivacyRequestRoute
   '/api/public/quote': typeof ApiPublicQuoteRoute
   '/api/public/quote-view': typeof ApiPublicQuoteViewRoute
+  '/files/documents/$': typeof FilesDocumentsSplatRoute
+  '/files/media/$': typeof FilesMediaSplatRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -546,6 +627,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/who-we-serve'
     | '/admin'
+    | '/api/health'
     | '/auth/reset'
     | '/auth/update-password'
     | '/book/manage'
@@ -576,8 +658,14 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/users'
     | '/api/admin/upload'
+    | '/api/auth/complete'
+    | '/api/auth/mfa-enroll'
+    | '/api/auth/mfa-verify'
+    | '/api/auth/password'
     | '/api/auth/reset'
+    | '/api/auth/session'
     | '/api/auth/sign-in'
+    | '/api/auth/sign-out'
     | '/api/cron/maintenance'
     | '/api/public/appointment-manage'
     | '/api/public/appointments'
@@ -587,6 +675,8 @@ export interface FileRouteTypes {
     | '/api/public/privacy-request'
     | '/api/public/quote'
     | '/api/public/quote-view'
+    | '/files/documents/$'
+    | '/files/media/$'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -602,6 +692,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/who-we-serve'
+    | '/api/health'
     | '/auth/reset'
     | '/auth/update-password'
     | '/book/manage'
@@ -632,8 +723,14 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/users'
     | '/api/admin/upload'
+    | '/api/auth/complete'
+    | '/api/auth/mfa-enroll'
+    | '/api/auth/mfa-verify'
+    | '/api/auth/password'
     | '/api/auth/reset'
+    | '/api/auth/session'
     | '/api/auth/sign-in'
+    | '/api/auth/sign-out'
     | '/api/cron/maintenance'
     | '/api/public/appointment-manage'
     | '/api/public/appointments'
@@ -643,6 +740,8 @@ export interface FileRouteTypes {
     | '/api/public/privacy-request'
     | '/api/public/quote'
     | '/api/public/quote-view'
+    | '/files/documents/$'
+    | '/files/media/$'
     | '/admin'
   id:
     | '__root__'
@@ -660,6 +759,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/who-we-serve'
     | '/_authenticated/admin'
+    | '/api/health'
     | '/auth/reset'
     | '/auth/update-password'
     | '/book/manage'
@@ -690,8 +790,14 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/users'
     | '/api/admin/upload'
+    | '/api/auth/complete'
+    | '/api/auth/mfa-enroll'
+    | '/api/auth/mfa-verify'
+    | '/api/auth/password'
     | '/api/auth/reset'
+    | '/api/auth/session'
     | '/api/auth/sign-in'
+    | '/api/auth/sign-out'
     | '/api/cron/maintenance'
     | '/api/public/appointment-manage'
     | '/api/public/appointments'
@@ -701,6 +807,8 @@ export interface FileRouteTypes {
     | '/api/public/privacy-request'
     | '/api/public/quote'
     | '/api/public/quote-view'
+    | '/files/documents/$'
+    | '/files/media/$'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -718,6 +826,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   WhoWeServeRoute: typeof WhoWeServeRoute
+  ApiHealthRoute: typeof ApiHealthRoute
   AuthResetRoute: typeof AuthResetRoute
   AuthUpdatePasswordRoute: typeof AuthUpdatePasswordRoute
   BookManageRoute: typeof BookManageRoute
@@ -732,8 +841,14 @@ export interface RootRouteChildren {
   PrivacyIndexRoute: typeof PrivacyIndexRoute
   ServicesIndexRoute: typeof ServicesIndexRoute
   ApiAdminUploadRoute: typeof ApiAdminUploadRoute
+  ApiAuthCompleteRoute: typeof ApiAuthCompleteRoute
+  ApiAuthMfaEnrollRoute: typeof ApiAuthMfaEnrollRoute
+  ApiAuthMfaVerifyRoute: typeof ApiAuthMfaVerifyRoute
+  ApiAuthPasswordRoute: typeof ApiAuthPasswordRoute
   ApiAuthResetRoute: typeof ApiAuthResetRoute
+  ApiAuthSessionRoute: typeof ApiAuthSessionRoute
   ApiAuthSignInRoute: typeof ApiAuthSignInRoute
+  ApiAuthSignOutRoute: typeof ApiAuthSignOutRoute
   ApiCronMaintenanceRoute: typeof ApiCronMaintenanceRoute
   ApiPublicAppointmentManageRoute: typeof ApiPublicAppointmentManageRoute
   ApiPublicAppointmentsRoute: typeof ApiPublicAppointmentsRoute
@@ -743,6 +858,8 @@ export interface RootRouteChildren {
   ApiPublicPrivacyRequestRoute: typeof ApiPublicPrivacyRequestRoute
   ApiPublicQuoteRoute: typeof ApiPublicQuoteRoute
   ApiPublicQuoteViewRoute: typeof ApiPublicQuoteViewRoute
+  FilesDocumentsSplatRoute: typeof FilesDocumentsSplatRoute
+  FilesMediaSplatRoute: typeof FilesMediaSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -844,6 +961,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth/': {
       id: '/auth/'
@@ -1062,6 +1186,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/complete': {
+      id: '/api/auth/complete'
+      path: '/api/auth/complete'
+      fullPath: '/api/auth/complete'
+      preLoaderRoute: typeof ApiAuthCompleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/mfa-enroll': {
+      id: '/api/auth/mfa-enroll'
+      path: '/api/auth/mfa-enroll'
+      fullPath: '/api/auth/mfa-enroll'
+      preLoaderRoute: typeof ApiAuthMfaEnrollRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/mfa-verify': {
+      id: '/api/auth/mfa-verify'
+      path: '/api/auth/mfa-verify'
+      fullPath: '/api/auth/mfa-verify'
+      preLoaderRoute: typeof ApiAuthMfaVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/password': {
+      id: '/api/auth/password'
+      path: '/api/auth/password'
+      fullPath: '/api/auth/password'
+      preLoaderRoute: typeof ApiAuthPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/reset': {
       id: '/api/auth/reset'
       path: '/api/auth/reset'
@@ -1069,11 +1221,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthResetRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/session': {
+      id: '/api/auth/session'
+      path: '/api/auth/session'
+      fullPath: '/api/auth/session'
+      preLoaderRoute: typeof ApiAuthSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/sign-in': {
       id: '/api/auth/sign-in'
       path: '/api/auth/sign-in'
       fullPath: '/api/auth/sign-in'
       preLoaderRoute: typeof ApiAuthSignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/sign-out': {
+      id: '/api/auth/sign-out'
+      path: '/api/auth/sign-out'
+      fullPath: '/api/auth/sign-out'
+      preLoaderRoute: typeof ApiAuthSignOutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/cron/maintenance': {
@@ -1137,6 +1303,20 @@ declare module '@tanstack/react-router' {
       path: '/api/public/quote-view'
       fullPath: '/api/public/quote-view'
       preLoaderRoute: typeof ApiPublicQuoteViewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/files/documents/$': {
+      id: '/files/documents/$'
+      path: '/files/documents/$'
+      fullPath: '/files/documents/$'
+      preLoaderRoute: typeof FilesDocumentsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/files/media/$': {
+      id: '/files/media/$'
+      path: '/files/media/$'
+      fullPath: '/files/media/$'
+      preLoaderRoute: typeof FilesMediaSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -1210,6 +1390,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   WhoWeServeRoute: WhoWeServeRoute,
+  ApiHealthRoute: ApiHealthRoute,
   AuthResetRoute: AuthResetRoute,
   AuthUpdatePasswordRoute: AuthUpdatePasswordRoute,
   BookManageRoute: BookManageRoute,
@@ -1224,8 +1405,14 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyIndexRoute: PrivacyIndexRoute,
   ServicesIndexRoute: ServicesIndexRoute,
   ApiAdminUploadRoute: ApiAdminUploadRoute,
+  ApiAuthCompleteRoute: ApiAuthCompleteRoute,
+  ApiAuthMfaEnrollRoute: ApiAuthMfaEnrollRoute,
+  ApiAuthMfaVerifyRoute: ApiAuthMfaVerifyRoute,
+  ApiAuthPasswordRoute: ApiAuthPasswordRoute,
   ApiAuthResetRoute: ApiAuthResetRoute,
+  ApiAuthSessionRoute: ApiAuthSessionRoute,
   ApiAuthSignInRoute: ApiAuthSignInRoute,
+  ApiAuthSignOutRoute: ApiAuthSignOutRoute,
   ApiCronMaintenanceRoute: ApiCronMaintenanceRoute,
   ApiPublicAppointmentManageRoute: ApiPublicAppointmentManageRoute,
   ApiPublicAppointmentsRoute: ApiPublicAppointmentsRoute,
@@ -1235,6 +1422,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPrivacyRequestRoute: ApiPublicPrivacyRequestRoute,
   ApiPublicQuoteRoute: ApiPublicQuoteRoute,
   ApiPublicQuoteViewRoute: ApiPublicQuoteViewRoute,
+  FilesDocumentsSplatRoute: FilesDocumentsSplatRoute,
+  FilesMediaSplatRoute: FilesMediaSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

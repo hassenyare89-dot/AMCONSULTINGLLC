@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 /**
  * Daily maintenance (scheduled publishing, expiry reminders, quote expiry).
  * Call with: POST /api/cron/maintenance  Authorization: Bearer $CRON_SECRET
- * (Cloudflare Cron Trigger, GitHub Actions schedule, or any scheduler.)
+ * (The Docker `scheduler` service calls it daily over the internal network.)
  */
 export const Route = createFileRoute("/api/cron/maintenance")({
   server: {

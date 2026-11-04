@@ -5,8 +5,6 @@ const read = (k: string): string | undefined => {
 };
 
 export const env = {
-  supabaseUrl: () => read("SUPABASE_URL"),
-  supabasePublishableKey: () => read("SUPABASE_PUBLISHABLE_KEY"),
   resendApiKey: () => read("RESEND_API_KEY"),
   leadRecipient: () => read("LEAD_RECIPIENT_EMAIL") ?? "info@amconsultingllc.net",
   mailFrom: () => read("LEAD_FROM_EMAIL") ?? "AM Consulting LLC <onboarding@resend.dev>",

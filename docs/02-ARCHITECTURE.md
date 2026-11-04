@@ -16,7 +16,7 @@ src/
     drivers.index.tsx / .confirmation / .status, privacy.index.tsx, privacy.request.tsx,
     terms.tsx, accessibility.tsx, cookies.tsx, sitemap[.]xml.ts, robots[.]txt.ts
     auth.index.tsx / auth.reset.tsx / auth.update-password.tsx       staff sign-in (no public sign-up)
-    _authenticated/route.tsx                                        requires a Supabase session (client)
+    _authenticated/route.tsx                                        requires a session (checked via /api/auth/session)
     _authenticated/admin.tsx                                        AMCMS shell (MFA gate, sidebar)
     _authenticated/admin.*.tsx                                      one file per AMCMS module
     api/public/*.ts                                                 public form endpoints
@@ -35,8 +35,10 @@ src/
     rpc/dispatch.server.ts      central dispatcher: auth → staff/MFA gate → rate limit → handler
     services/                   domain services (intake, resources + hooks, drivers, quotes,
                                 operations, cms, files, admin)
-supabase/migrations/            Ordered SQL migrations (original 5 + 2 AMCMS)
-supabase/tests/                 Database authorization tests (run on real Postgres)
+db/migrations/                  Ordered SQL migrations (original 5 + 2 AMCMS)
+db/platform/                    Cluster roles + auth schema for plain PostgreSQL
+db/tests/                       Database authorization tests (run on real Postgres)
+Dockerfile, docker-compose.yml  Self-hosted deployment (docs/12)
 tests/unit, tests/e2e           Vitest and Playwright suites
 ```
 
@@ -47,8 +49,12 @@ Postgres-backed rate limit (per IP-hash, per minute and per day) → honeypot / 
 Turnstile → **persist first** (submission + CRM lead + consent record) → staff notification →
 transactional email (logged in `notification_delivery_events`).
 
-**AMCMS** → browser calls `adminRpc({ op, input })` (one `createServerFn`) with the Supabase bearer
-token → `requireSupabaseAuth` verifies the JWT → `runOp`:
+**Sign-in** → `POST /api/auth/sign-in` (throttled, audited) sets an HttpOnly `amcms_session` cookie →
+`POST /api/auth/mfa-enroll` / `mfa-verify` upgrades that server-side session to AAL2.
+
+**AMCMS** → browser calls `adminRpc({ op, input })` (one `createServerFn`); the session cookie is sent
+automatically → `requireSession` (`lib/auth/middleware.ts`) resolves it against `auth.sessions`
+(expiry, idle timeout, revocation, ban) → `runOp`:
 1. load roles + profile (`loadStaff`),
 2. `assertStaff`: active account, has a role, **session is AAL2 (MFA)** — only `session.me` and
    `session.event` are exempt so the UI can route to enrolment,
@@ -57,9 +63,10 @@ token → `requireSupabaseAuth` verifies the JWT → `runOp`:
 5. typed errors are encoded (`AMCMS:{code,message}`) so the UI gets safe messages; anything
    unexpected becomes `INTERNAL` with a request id.
 
-The service-role client (`server/db.server.ts`) bypasses RLS, so it is only reachable from server
-modules after these checks. RLS remains enabled and anon/authenticated have **no table privileges**,
-so a leaked publishable key cannot read or write AMCMS data directly.
+The database client (`server/db.server.ts`, a parameterised query builder over `pg`) connects as the
+schema owner, so it is only reachable from server modules after these checks. The database itself is
+reachable only on the private Docker network; RLS remains enabled and anon/authenticated have **no
+table privileges** as defence in depth.
 
 ## Generic resource engine
 

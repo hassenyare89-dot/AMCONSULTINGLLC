@@ -2,10 +2,10 @@
 
 Status key: ✅ implemented & tested · 🟡 implemented, needs a live backend/credentials to verify end-to-end · ⛔ blocked (reason given) · 📝 requires company/legal input.
 
-"Tested" means automated tests that actually ran in this environment (see docs/10). Flows that need a live
-Supabase project (sign-in, MFA, data writes through the UI) were **not** exercised end-to-end here because
-no Supabase instance was reachable; their server logic is covered by unit/authorization tests and the
-database constraints by real-Postgres tests.
+"Tested" means automated tests that actually ran in this environment (see docs/10). Since the move to
+self-hosted PostgreSQL, sign-in, MFA, uploads and a form write are exercised end-to-end against the real
+built server and a real database (`scripts/test-integration.sh`); most individual AMCMS screens are still
+covered by unit/authorization tests rather than clicked through.
 
 ## Phases
 
@@ -17,7 +17,7 @@ database constraints by real-Postgres tests.
 | 4 Cinematic landing page | ✅ 3D/video/image hero with fallbacks and pause control; 🟡 original video only on Lovable hosting (docs/05) |
 | 5 Public website | ✅ all pages in §6 of the brief |
 | 6 Database | ✅ migrations + RLS, tested on Postgres 16 |
-| 7 Authentication | 🟡 staff sign-in, invite-only, MFA gate, reset, idle timeout — needs Supabase to verify live |
+| 7 Authentication | ✅ staff sign-in, invite-only, MFA gate, reset, idle timeout, session revocation — integration-tested (API + browser) |
 | 8 Management system | 🟡 all modules built; server authorization tested |
 | 9 CMS | 🟡 editor, media, drafts/publish/schedule/revisions |
 | 10 Security & compliance | ✅ controls (docs/06); 📝 legal review (docs/08) |
@@ -36,7 +36,7 @@ database constraints by real-Postgres tests.
 | Contact forms persist valid submissions | 🟡 persisted before email (code + schema); live DB write not run here |
 | Driver registrations saved securely | 🟡 hashed IP, consent, history; secure token status |
 | Secure applicant status process | ✅ token format/expiry logic; status-only legacy lookup; E2E for malformed tokens |
-| Administrative authentication works | 🟡 needs live Supabase |
+| Administrative authentication works | ✅ integration test: invite → password → sign-in → TOTP → dashboard |
 | Permissions enforced on the server | ✅ every operation tested to reject unauthorised roles before DB access |
 | Drivers reviewed/managed | 🟡 |
 | Truck records managed | 🟡 |
@@ -52,14 +52,14 @@ database constraints by real-Postgres tests.
 | Critical automated tests pass | ✅ see docs/10 |
 | Accessibility documented & remediated | ✅ axe: 0 violations on 16 pages × 2 viewports; manual AT testing still recommended |
 | U.S. compliance & legal reviews documented | ✅ docs/08; 📝 counsel sign-off |
-| Production build & deploy instructions validated | ✅ `bun run build` succeeds; 🟡 actual deployment not performed |
+| Production build & deploy instructions validated | ✅ build + Docker Compose stack run locally; 🟡 deployment to a real Droplet not performed |
 
 ## Blocked / needs input
 
 | Item | Blocker | Next action |
 |---|---|---|
 | Original hero video, logo, about image | Not in ZIP; asset CDN unreachable from this environment | Download from Lovable Assets → upload in CMS Media (docs/05) |
-| Live end-to-end of auth/MFA/data writes | No Supabase reachable; local Supabase images blocked | Apply migrations to a staging project and run the smoke test (docs/07) |
+| Real-server deployment | Not performed from here | Deploy to a Droplet (docs/12) and run the smoke test (docs/07) |
 | Email delivery | Needs `RESEND_API_KEY` + verified domain | docs/07 DNS checklist |
 | Malware scanning | No scanning service in stack | Choose provider; set `scan_status` |
 | Error monitoring | Needs Sentry DSN | docs/07 |

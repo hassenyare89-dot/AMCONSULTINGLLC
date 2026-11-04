@@ -2,14 +2,13 @@ import { useEffect, useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
-import { rpc } from "@/lib/admin/rpc";
+import { getSession, mfaEnroll, mfaVerify } from "@/lib/auth/client";
 import { inputCls } from "./kit";
 
 type Mode =
   | { kind: "loading" }
-  | { kind: "verify"; factorId: string }
-  | { kind: "enroll"; factorId: string; qr: string; secret: string }
+  | { kind: "verify" }
+  | { kind: "enroll"; qr: string; secret: string }
   | { kind: "error"; message: string };
 
 /** TOTP enrolment / verification. Staff cannot reach AMCMS data until their session is AAL2. */
@@ -29,30 +28,16 @@ export function MfaGate({
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase.auth.mfa.listFactors();
-      if (error) return setMode({ kind: "error", message: error.message });
-      const verified = data.totp.find((f) => f.status === "verified");
-      if (verified) return setMode({ kind: "verify", factorId: verified.id });
-      // Remove abandoned, unverified enrolments before starting a new one.
-      for (const f of data.all.filter((f) => f.status !== "verified"))
-        await supabase.auth.mfa.unenroll({ factorId: f.id });
-      const en = await supabase.auth.mfa.enroll({
-        factorType: "totp",
-        friendlyName: `AMCMS ${new Date().toISOString().slice(0, 10)}`,
-      });
-      if (en.error || !en.data)
-        return setMode({
-          kind: "error",
-          message:
-            en.error?.message ??
-            "Could not start MFA enrolment. Is TOTP MFA enabled in Supabase Auth?",
-        });
-      setMode({
-        kind: "enroll",
-        factorId: en.data.id,
-        qr: en.data.totp.qr_code,
-        secret: en.data.totp.secret,
-      });
+      const session = await getSession();
+      if (!session)
+        return setMode({ kind: "error", message: "Your session has expired. Sign in again." });
+      if (session.mfaEnabled) return setMode({ kind: "verify" });
+      try {
+        const en = await mfaEnroll();
+        setMode({ kind: "enroll", qr: en.qrDataUrl, secret: en.secret });
+      } catch (err) {
+        setMode({ kind: "error", message: (err as Error).message || "Could not start enrolment." });
+      }
     })();
   }, []);
 
@@ -61,20 +46,13 @@ export function MfaGate({
     if (mode.kind !== "verify" && mode.kind !== "enroll") return;
     setBusy(true);
     setError(null);
-    const { error } = await supabase.auth.mfa.challengeAndVerify({
-      factorId: mode.factorId,
-      code: code.replace(/\s/g, ""),
-    });
-    if (error) {
+    try {
+      await mfaVerify(code.replace(/\s/g, ""));
+    } catch (err) {
       setBusy(false);
-      setError("That code didn't work. Check your authenticator app's time and try again.");
-      rpc("session.event", { event: "mfa_failed" }).catch(() => {});
+      setError((err as Error).message || "That code didn't work.");
       return;
     }
-    await supabase.auth.refreshSession();
-    await rpc("session.event", {
-      event: mode.kind === "enroll" ? "mfa_enrolled" : "mfa_verified",
-    }).catch(() => {});
     setBusy(false);
     onDone();
   }

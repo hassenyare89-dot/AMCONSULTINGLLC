@@ -4,8 +4,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PageHeader, Panel, inputCls } from "@/components/admin/kit";
-import { supabase } from "@/integrations/supabase/client";
-import { rpc, useRpcMutation } from "@/lib/admin/rpc";
+import { changePassword as apiChangePassword, getSession } from "@/lib/auth/client";
+import { useRpcMutation } from "@/lib/admin/rpc";
 import { useAdminSession } from "@/lib/admin/session";
 import { passwordProblems } from "@/lib/shared/password";
 import { cn } from "@/lib/utils";
@@ -20,20 +20,22 @@ function AccountPage() {
     success: "Profile saved",
   });
   const [pw, setPw] = useState("");
-  const [factors, setFactors] = useState<
-    { id: string; friendly_name?: string; created_at: string; status: string }[]
-  >([]);
+  const [currentPw, setCurrentPw] = useState("");
+  const [mfaEnabled, setMfaEnabled] = useState<boolean | null>(null);
   useEffect(() => {
-    supabase.auth.mfa.listFactors().then(({ data }) => setFactors((data?.all ?? []) as any));
+    getSession().then((sess) => setMfaEnabled(sess?.mfaEnabled ?? null));
   }, []);
   async function changePassword(e: React.FormEvent) {
     e.preventDefault();
     const problems = passwordProblems(pw, s.email ?? "");
     if (problems.length) return toast.error(problems[0]);
-    const { error } = await supabase.auth.updateUser({ password: pw });
-    if (error) return toast.error(error.message);
-    await rpc("session.event", { event: "password_changed" }).catch(() => {});
+    try {
+      await apiChangePassword(currentPw, pw);
+    } catch (err) {
+      return toast.error((err as Error).message);
+    }
     setPw("");
+    setCurrentPw("");
     toast.success("Password updated");
   }
   return (
@@ -72,6 +74,18 @@ function AccountPage() {
         <Panel title="Password">
           <form className="space-y-3" onSubmit={changePassword}>
             <div>
+              <Label htmlFor="curpw">Current password</Label>
+              <input
+                id="curpw"
+                type="password"
+                autoComplete="current-password"
+                required
+                className={cn(inputCls, "mt-1")}
+                value={currentPw}
+                onChange={(e) => setCurrentPw(e.target.value)}
+              />
+            </div>
+            <div>
               <Label htmlFor="newpw">New password</Label>
               <input
                 id="newpw"
@@ -96,17 +110,14 @@ function AccountPage() {
             Session assurance:{" "}
             <strong>{s.aal === "aal2" ? "verified with authenticator" : "password only"}</strong>
           </p>
-          <ul className="mt-3 space-y-1 text-sm">
-            {factors.map((f) => (
-              <li key={f.id}>
-                {f.friendly_name ?? "Authenticator"} · {f.status} · added{" "}
-                {new Date(f.created_at).toLocaleDateString()}
-              </li>
-            ))}
-          </ul>
+          {mfaEnabled !== null && (
+            <p className="mt-2 text-sm">
+              Authenticator app: <strong>{mfaEnabled ? "set up" : "not set up"}</strong>
+            </p>
+          )}
           <p className="mt-3 text-xs text-muted-foreground">
-            Lost your device? Ask a Super Admin to reset your MFA factor in the Supabase dashboard
-            (Authentication → Users), then sign in again to re-enrol.
+            Lost your device? Ask a Super Admin to reset your two-step verification (Users → select
+            your account → Reset two-step verification), then sign in again to re-enrol.
           </p>
         </Panel>
       </div>

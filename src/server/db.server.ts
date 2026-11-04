@@ -1,17 +1,16 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { AppError } from "@/lib/shared/errors";
+import { createDb, type Db } from "./pg/query";
+import { query } from "./pg/pool.server";
 
 /**
- * Service-role database client for AMCMS tables. It bypasses RLS, so it must only be used
- * after the caller has been authenticated and authorised (see authz.server.ts).
- * Untyped because AMCMS tables are newer than the generated Lovable types.
+ * Database client for AMCMS (self-hosted PostgreSQL). It connects as the schema owner, so it is
+ * only reachable from server modules after the caller has been authenticated and authorised
+ * (see authz.server.ts). Every value is a bound parameter.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const db = (): SupabaseClient<any, "public", any> =>
-  supabaseAdmin as unknown as SupabaseClient<any, "public", any>;
+let instance: Db | undefined;
+export const db = (): Db => (instance ??= createDb((sql, params) => query(sql, params)));
 
-/** Throws a sanitized error for a PostgREST error, mapping known constraint failures. */
+/** Throws a sanitized error for a database error, mapping known constraint failures. */
 export function check<T>(
   res: { data: T; error: { code?: string; message: string; details?: string | null } | null },
   what = "Database operation",
