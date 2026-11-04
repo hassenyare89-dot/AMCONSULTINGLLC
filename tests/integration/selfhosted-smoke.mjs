@@ -145,44 +145,66 @@ async function main() {
          FROM public.driver_registrations WHERE id = $1`,
       [r.json.id],
     );
-    assert.deepEqual({ ...rows[0], payload_capacity: Number(rows[0].payload_capacity) }, {
-      dot_number: "1234567",
-      truck_type: "tandem,tri-axle",
-      truck_count: 2,
-      payload_capacity: 15,
-      payload_unit: "tons",
-      current_location: "Marietta",
-      availability: "weekdays,weekends",
-      cdl_class: "A",
-      insurance_active: true,
-      preferred_materials: "gravel,crush-and-run",
-      travel_radius: "50",
-      georgia_attested: true,
-      attested_at: true,
-    });
+    assert.deepEqual(
+      { ...rows[0], payload_capacity: Number(rows[0].payload_capacity) },
+      {
+        dot_number: "1234567",
+        truck_type: "tandem,tri-axle",
+        truck_count: 2,
+        payload_capacity: 15,
+        payload_unit: "tons",
+        current_location: "Marietta",
+        availability: "weekdays,weekends",
+        cdl_class: "A",
+        insurance_active: true,
+        preferred_materials: "gravel,crush-and-run",
+        travel_radius: "50",
+        georgia_attested: true,
+        attested_at: true,
+      },
+    );
     const docs = await db.query(
       "SELECT category, sensitivity, entity_type, content_type FROM public.documents WHERE entity_id = $1 ORDER BY category, sensitivity",
       [r.json.id],
     );
     assert.deepEqual(docs.rows, [
-      { category: "driver_registration", sensitivity: "restricted", entity_type: "driver_application", content_type: "application/pdf" },
-      { category: "insurance", sensitivity: "confidential", entity_type: "driver_application", content_type: "application/pdf" },
+      {
+        category: "driver_registration",
+        sensitivity: "restricted",
+        entity_type: "driver_application",
+        content_type: "application/pdf",
+      },
+      {
+        category: "insurance",
+        sensitivity: "confidential",
+        entity_type: "driver_application",
+        content_type: "application/pdf",
+      },
     ]);
     const consent = await db.query(
       "SELECT consent_type FROM public.consent_records WHERE related_id = $1 ORDER BY consent_type",
       [r.json.id],
     );
-    assert.deepEqual(consent.rows.map((c) => c.consent_type), ["georgia_operating_attestation", "privacy_notice"]);
+    assert.deepEqual(
+      consent.rows.map((c) => c.consent_type),
+      ["georgia_operating_attestation", "privacy_notice"],
+    );
   });
 
   await step("driver registration rejects disguised files and saves nothing", async () => {
-    const before = (await db.query("SELECT count(*)::int AS n FROM public.driver_registrations")).rows[0].n;
+    const before = (await db.query("SELECT count(*)::int AS n FROM public.driver_registrations"))
+      .rows[0].n;
     const fd = driverForm({ ownerName: "Smoke Driver Two" });
-    fd.append("docCdl", new Blob(["<html><script>alert(1)</script></html>"], { type: "application/pdf" }), "cdl.pdf");
+    fd.append(
+      "docCdl",
+      new Blob(["<html><script>alert(1)</script></html>"], { type: "application/pdf" }),
+      "cdl.pdf",
+    );
     const r = await call("/api/public/driver", { form: fd, withCookie: false });
     assert.equal(r.status, 400, r.text);
     assert.equal(r.json.details?.field, "docCdl");
-    const after = (await db.query("SELECT count(*)::int AS n FROM public.driver_registrations")).rows[0].n;
+    const after = (await db.query("SELECT count(*)::int AS n FROM public.driver_registrations"))
+      .rows[0].n;
     assert.equal(after, before);
   });
 
