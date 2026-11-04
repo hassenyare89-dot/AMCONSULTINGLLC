@@ -31,10 +31,10 @@ every device. `auto` uses the 3D truck scene on capable desktops and video elsew
 Save-Data always get the static poster. Video and 3D never render at the same time.
 
 Presentation (Nov 2026): the footage is shown in its true colours (no navy tint, slight saturation
-boost). Text sits on a light, unblurred panel (black 35 %, no blur) so the footage stays visible through
-it; every glyph carries a tight dark halo (text-outline technique). Without the halo, white text over
-the brightest frames measures ≥ 3.0:1 (meets AA for the large headline); the halo provides the
-contrast for body text. Raise the panel tint to ~48 % if strict 4.5:1 without halos is required. The pause control is visually hidden and appears only
+boost). Text sits directly on the footage — no panel/card. Readability comes from a soft neutral gradient
+behind the text area only (from the left on desktop, from the bottom on phones/tablets) plus a tight
+dark halo on each glyph. Measured worst case over all frames, before the halo: desktop 4.4–5.3:1,
+tablet ≥ 6.2:1, phone ≥ 3.7:1 for the large headline and ≥ 6.4:1 for body text. The pause control is visually hidden and appears only
 when focused with the keyboard (WCAG 2.2.2 requires a way to pause moving content); reduced-motion
 users never get the video.
 
