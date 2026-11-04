@@ -50,20 +50,22 @@ test.describe("motion preferences", () => {
     await expect(page.getByRole("button", { name: /Pause background/ })).toHaveCount(0);
   });
 
-  test("animated hero exposes a pause control that persists", async ({ page }) => {
+  test("hero video has a keyboard-only pause control (WCAG 2.2.2)", async ({ page }) => {
     await gotoReady(page, "/");
-    // The bundled landing video plays by default on every viewport.
-    await expect(page.locator("#home video")).toHaveCount(1);
-    const pause = page.getByRole("button", { name: /Pause background/ });
-    await expect(pause).toBeVisible({ timeout: 15000 });
-    await pause.click();
-    await expect(page.getByRole("button", { name: /Play background/ })).toHaveAttribute(
+    const video = page.locator("#home video");
+    await expect(video).toHaveCount(1);
+    const pause = page.getByRole("button", { name: "Pause background video" });
+    // Not shown on top of the video for mouse/touch visitors…
+    await expect(pause).toHaveClass(/sr-only/);
+    expect((await pause.boundingBox())?.width ?? 0).toBeLessThanOrEqual(1);
+    // …but reachable and visible for keyboard users, and it really pauses the video.
+    await pause.focus();
+    expect((await pause.boundingBox())?.width ?? 0).toBeGreaterThan(40);
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("button", { name: "Play background video" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
-    await page.reload();
-    await expect(page.getByRole("button", { name: /Play background/ })).toBeVisible({
-      timeout: 15000,
-    });
+    await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true);
   });
 });

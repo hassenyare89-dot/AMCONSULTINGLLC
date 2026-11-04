@@ -1,15 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, Component, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import {
-  ArrowRight,
-  CalendarCheck,
-  ClipboardList,
-  Pause,
-  Play,
-  Route as RouteIcon,
-  ShieldCheck,
-  Truck,
-} from "lucide-react";
+import { ArrowRight, ChevronDown, Pause, Play, ShieldCheck, Truck } from "lucide-react";
 import { SmartLink } from "./SmartLink";
 import { Button } from "@/components/ui/button";
 import { safeUrl } from "@/lib/shared/sanitize";
@@ -23,7 +14,6 @@ const DEFAULT_POSTER = "/media/hero-poster.jpg";
 
 type HeroContent = SiteContent["home.hero"];
 type Mode = "3d" | "video" | "image";
-const PREF_KEY = "amc_hero_paused";
 
 function hasWebGL(): boolean {
   try {
@@ -89,11 +79,6 @@ export function HeroView({ c, preview = false }: { c: HeroContent; preview?: boo
 
   useEffect(() => {
     if (preview) return;
-    try {
-      setUserPaused(localStorage.getItem(PREF_KEY) === "1");
-    } catch {
-      /* storage unavailable */
-    }
     const nav = navigator as Navigator & { connection?: { saveData?: boolean } };
     setMode(
       chooseHeroMode(c.mode || "auto", {
@@ -143,16 +128,7 @@ export function HeroView({ c, preview = false }: { c: HeroContent; preview?: boo
     else v.play().catch(() => {});
   }, [paused, mode]);
 
-  const togglePause = () => {
-    setUserPaused((p) => {
-      try {
-        localStorage.setItem(PREF_KEY, p ? "0" : "1");
-      } catch {
-        /* ignore */
-      }
-      return !p;
-    });
-  };
+  const togglePause = () => setUserPaused((p) => !p);
 
   const showMotion = mode !== "image" && !preview;
   const ctas = [
@@ -165,7 +141,7 @@ export function HeroView({ c, preview = false }: { c: HeroContent; preview?: boo
       ref={section}
       id="home"
       aria-labelledby="hero-title"
-      className="relative isolate flex min-h-[100svh] items-center overflow-hidden bg-navy-deep pt-16"
+      className="relative isolate flex min-h-[100svh] items-end overflow-hidden bg-navy-deep pt-16 lg:items-center"
     >
       <div className="absolute inset-0 -z-10">
         {/* Poster image is always rendered first (fast LCP, no-JS and reduced-motion fallback). */}
@@ -190,7 +166,7 @@ export function HeroView({ c, preview = false }: { c: HeroContent; preview?: boo
             playsInline
             preload="metadata"
             aria-hidden="true"
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover [filter:saturate(1.12)_contrast(1.05)]"
             onError={() => setMode("image")}
           >
             {!customVideo && (
@@ -218,33 +194,25 @@ export function HeroView({ c, preview = false }: { c: HeroContent; preview?: boo
             </SceneBoundary>
           </div>
         )}
+        {/* Neutral (untinted) shading only: a soft top fade for the header and a short bottom fade
+            into the next section. Text contrast comes from the glass panel, not from darkening
+            the whole video. */}
         <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(100deg, color-mix(in oklab, var(--navy-deep) 88%, transparent) 0%, color-mix(in oklab, var(--navy) 55%, transparent) 48%, transparent 78%)",
-          }}
-        />
-        {/* Phones/tablets: text spans the full width, so add an even scrim for contrast. */}
-        <div
-          className="pointer-events-none absolute inset-0 lg:hidden"
-          style={{ background: "color-mix(in oklab, var(--navy-deep) 55%, transparent)" }}
+          className="pointer-events-none absolute inset-x-0 top-0 h-32"
+          style={{ background: "linear-gradient(180deg, rgb(0 0 0 / 0.45), transparent)" }}
         />
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-40"
-          style={{
-            background:
-              "linear-gradient(0deg, color-mix(in oklab, var(--navy-deep) 70%, transparent), transparent)",
-          }}
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-48"
+          style={{ background: "linear-gradient(0deg, rgb(0 0 0 / 0.55), transparent)" }}
         />
       </div>
 
-      <div className="mx-auto grid w-full max-w-7xl items-center gap-10 px-4 py-20 sm:px-6 lg:grid-cols-12 lg:px-8">
+      <div className="mx-auto grid w-full max-w-7xl items-center gap-10 px-4 pb-14 pt-[38svh] sm:px-6 lg:grid-cols-12 lg:px-8 lg:pb-16 lg:pt-8">
         <motion.div
           initial={reduce ? false : { opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
-          className="text-white lg:col-span-7"
+          className="rounded-3xl border border-white/15 bg-black/50 p-5 text-white shadow-[0_30px_80px_-20px_rgb(0_0_0/0.6)] backdrop-blur-md sm:p-8 lg:col-span-8 xl:col-span-7"
         >
           {c.eyebrow && (
             <span className="glass-dark inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand-green-soft">
@@ -254,17 +222,19 @@ export function HeroView({ c, preview = false }: { c: HeroContent; preview?: boo
           )}
           <h1
             id="hero-title"
-            className="mt-5 text-4xl font-extrabold leading-[1.05] text-white sm:text-5xl lg:text-6xl"
+            className="mt-3 text-[2rem] font-extrabold leading-[1.05] sm:mt-4 text-white [text-shadow:0_2px_24px_rgb(0_0_0/0.35)] sm:text-5xl"
           >
             <Headline text={c.headline} accent={c.headlineAccent} />
           </h1>
           {c.subheadline && (
-            <p className="mt-5 text-xl font-semibold text-white sm:text-2xl">{c.subheadline}</p>
+            <p className="mt-3 text-base font-semibold text-white sm:mt-4 sm:text-xl">
+              {c.subheadline}
+            </p>
           )}
           {c.description && (
-            <p className="mt-4 max-w-xl text-base text-white/85 sm:text-lg">{c.description}</p>
+            <p className="mt-3 max-w-xl text-sm text-white sm:text-base">{c.description}</p>
           )}
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             {ctas.map((x) => (
               <Button
                 key={x.href}
@@ -296,7 +266,7 @@ export function HeroView({ c, preview = false }: { c: HeroContent; preview?: boo
             )}
           </div>
           {c.badges?.length > 0 && (
-            <ul className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm text-white/80">
+            <ul className="mt-6 hidden flex-wrap items-center gap-x-6 gap-y-2 border-t border-white/15 pt-5 text-sm text-white sm:flex">
               {c.badges.map((b) => (
                 <li key={b} className="flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-brand-green" aria-hidden /> {b}
@@ -305,50 +275,34 @@ export function HeroView({ c, preview = false }: { c: HeroContent; preview?: boo
             </ul>
           )}
         </motion.div>
-
-        {/* Floating dispatch cards — illustrate the workflow; they are not live metrics. */}
-        <div
-          className="relative hidden h-[420px] lg:col-span-5 lg:block"
-          aria-label="How a dispatch is coordinated (illustration)"
-          role="img"
-        >
-          <FloatingCard
-            delay={0.2}
-            className="absolute right-6 top-0 w-64"
-            icon={<ClipboardList className="h-5 w-5" />}
-            label="Job details"
-            body="Material, quantity, site access and timing confirmed"
-          />
-          <FloatingCard
-            delay={0.4}
-            className="absolute left-0 top-40 w-72"
-            icon={<RouteIcon className="h-5 w-5" />}
-            label="Route planned"
-            body="Pickup → jobsite coordinated with the driver"
-          />
-          <FloatingCard
-            delay={0.6}
-            className="absolute bottom-0 right-0 w-60"
-            icon={<CalendarCheck className="h-5 w-5" />}
-            label="On schedule"
-            body="Follow-up after every completed load"
-          />
-        </div>
       </div>
 
+      {!reduce && (
+        <a
+          href="#main-after-hero"
+          aria-hidden="true"
+          tabIndex={-1}
+          className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 text-white/90 drop-shadow"
+        >
+          <ChevronDown className="h-7 w-7 animate-bounce" />
+        </a>
+      )}
+
       {showMotion && (
+        // WCAG 2.2.2: moving background must be pausable. Hidden until focused with the keyboard,
+        // so it doesn't sit on top of the video for mouse and touch visitors.
         <button
           type="button"
           onClick={togglePause}
           aria-pressed={userPaused}
-          className="absolute bottom-5 right-5 z-10 inline-flex items-center gap-2 rounded-full bg-black/45 px-3 py-2 text-xs font-semibold text-white backdrop-blur hover:bg-black/60 focus-visible:focus-brand"
+          className="sr-only z-20 focus:not-sr-only focus:absolute focus:bottom-5 focus:right-5 focus:inline-flex focus:items-center focus:gap-2 focus:rounded-full focus:bg-black/70 focus:px-3 focus:py-2 focus:text-xs focus:font-semibold focus:text-white focus-visible:focus-brand"
         >
           {userPaused ? (
             <Play className="h-4 w-4" aria-hidden />
           ) : (
             <Pause className="h-4 w-4" aria-hidden />
           )}
-          {userPaused ? "Play background" : "Pause background"}
+          {userPaused ? "Play background video" : "Pause background video"}
         </button>
       )}
       <p className="sr-only">
@@ -360,47 +314,8 @@ export function HeroView({ c, preview = false }: { c: HeroContent; preview?: boo
             : "a photo of a dump truck"}
         .
       </p>
+      <span id="main-after-hero" className="absolute bottom-0" aria-hidden />
     </section>
-  );
-}
-
-function FloatingCard({
-  className,
-  icon,
-  label,
-  body,
-  delay = 0,
-}: {
-  className?: string;
-  icon: ReactNode;
-  label: string;
-  body: string;
-  delay?: number;
-}) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      initial={reduce ? false : { opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, delay }}
-      className={`glass-dark rounded-xl p-4 text-white shadow-[var(--shadow-elevated)] ${className}`}
-    >
-      <motion.div
-        animate={reduce ? undefined : { y: [0, -6, 0] }}
-        transition={{ duration: 4 + delay, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-brand-green-soft">
-          <span
-            className="grid h-7 w-7 place-items-center rounded-md bg-brand-green/20 text-brand-green"
-            aria-hidden
-          >
-            {icon}
-          </span>
-          {label}
-        </div>
-        <p className="mt-2 text-sm text-white/85">{body}</p>
-      </motion.div>
-    </motion.div>
   );
 }
 
