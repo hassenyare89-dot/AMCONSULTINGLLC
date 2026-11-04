@@ -77,7 +77,7 @@ These are displayed today but are **not substantiated anywhere in the repository
 |---|---|---|
 | `hero-truck.jpg` (172 KB) | **Yes** | Used as poster and fallback. |
 | `hero.mp4` (6.9 MB) | **No** — only `hero.mp4.asset.json`, which points to Lovable's asset CDN at the relative path `/__l5e/assets-v1/b25cad92-…/hero.mp4`. | **Not recovered.** Fetching it from `amconsultingllc.net` was blocked by this environment's network policy. The relative URL is kept, so it will keep working **when deployed on Lovable**. If it fails to load, the hero falls back to the poster image. Admins can upload a replacement in CMS → Media. See `docs/05-HERO_VIDEO_SPEC.md`. |
-| `am-logo-full.png`, `about-trucks.jpg`, `am-favicon.png` | **No** — asset JSON pointers only | Same as above; logo falls back to a text wordmark on load error. Favicons/PWA icons **are** in `public/`. |
+| `am-logo-full.png`, `about-trucks.jpg`, `am-favicon.png` | **No** — asset JSON pointers only (About photos replaced Nov 2026 by `public/media/about-*.jpg`) | Same as above; logo falls back to a text wordmark on load error. Favicons/PWA icons **are** in `public/`. |
 
 I did **not** obtain or fabricate the original video.
 
