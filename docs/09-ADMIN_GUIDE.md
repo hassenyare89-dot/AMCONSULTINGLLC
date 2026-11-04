@@ -69,9 +69,16 @@ Deactivate departing staff immediately (User Management → Manage → Deactivat
 
 ## Driver registrations (Georgia form)
 
-The public form at **/drivers** collects what dispatch needs: USDOT (required), truck count and
-types, **payload capacity**, **current truck location**, Georgia counties served, availability and
-travel radius, plus optional CDL class, insurance status and preferred materials. Applicants must
+The public form at **/drivers** collects what dispatch needs: USDOT, truck count and types,
+**payload capacity**, **current truck location** (address search limited to Georgia), Georgia
+counties served (searchable list of all 159 counties), availability, CDL class and whether insurance
+is active (all required), plus optional travel radius and preferred materials. **All four documents
+are required.**
+
+Address search uses free OpenStreetMap suggestions. To use Google instead, create a Google Maps
+Platform browser key (enable *Places API (New)* and *Geocoding API*, restrict it to your domain and
+those APIs, set a budget alert), put it in `.env` as `VITE_GOOGLE_MAPS_API_KEY`, and rebuild
+(`docker compose up -d --build`). Applicants must
 confirm their truck is insured, registered and authorized to operate in Georgia (stored with a
 timestamp). Optional uploads (CDL, insurance certificate, W-9, truck registration) appear in the
 application's **Documents** tab — CDL and W-9 are *restricted* (only roles with restricted-document

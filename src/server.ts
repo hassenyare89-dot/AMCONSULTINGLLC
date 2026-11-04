@@ -53,7 +53,7 @@ export function securityHeaders(https = true): Record<string, string> {
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: blob: https:",
     "media-src 'self' blob: https:",
-    "connect-src 'self' https://nominatim.openstreetmap.org https://challenges.cloudflare.com",
+    "connect-src 'self' https://nominatim.openstreetmap.org https://places.googleapis.com https://maps.googleapis.com https://challenges.cloudflare.com",
     "frame-src https://www.google.com https://challenges.cloudflare.com",
     "worker-src 'self' blob:",
     "form-action 'self'",

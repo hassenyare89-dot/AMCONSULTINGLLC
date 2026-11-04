@@ -31,6 +31,8 @@ import {
   type FieldErrors,
 } from "./forms";
 import { SectionHeader } from "./Services";
+import { AddressAutocomplete } from "./AddressAutocomplete";
+import { CountyMultiSelect } from "./CountyMultiSelect";
 
 export const DRIVER_STORAGE_KEY = "am_driver_registration";
 
@@ -59,6 +61,7 @@ export function DriverRegistration() {
       truckTypes: fd.getAll("truckTypes"),
       availability: fd.getAll("availability"),
       materials: fd.getAll("materials"),
+      counties: fd.getAll("counties"),
       attestGeorgia: fd.get("attestGeorgia") === "true",
       consentPrivacy: fd.get("consentPrivacy") === "true",
       consentContact: fd.get("consentContact") === "true",
@@ -70,7 +73,9 @@ export function DriverRegistration() {
     if (!data.consentPrivacy) errs.consentPrivacy = "Please acknowledge the privacy notice";
     for (const u of DRIVER_UPLOADS) {
       const f = fd.get(u.field);
-      if (f instanceof File && f.size > DRIVER_UPLOAD_MAX_BYTES)
+      if (!(f instanceof File) || f.size === 0)
+        errs[u.field] = `${u.label}: please attach this document.`;
+      else if (f.size > DRIVER_UPLOAD_MAX_BYTES)
         errs[u.field] = `${u.label}: file is too large (max 10 MB).`;
     }
     if (Object.keys(errs).length) {
@@ -106,7 +111,7 @@ export function DriverRegistration() {
             truckCount: d.truckCount,
             payload: `${d.payloadCapacity} ${d.payloadUnit === "tons" ? "tons" : "cubic yards"}`,
             currentLocation: d.currentLocation,
-            serviceArea: d.serviceArea,
+            serviceArea: d.counties.join(", "),
             availability: d.availability.join(","),
             documents: json.documents ?? [],
             id: json.id ?? null,
@@ -286,24 +291,34 @@ export function DriverRegistration() {
           </FormSection>
 
           <FormSection title="Location & availability">
+            <div className="space-y-1.5 md:col-span-2">
+              <label htmlFor="fld-counties" className="block text-sm font-medium text-charcoal">
+                Georgia counties you serve
+                <span className="text-destructive" aria-hidden>
+                  {" "}
+                  *
+                </span>
+              </label>
+              <CountyMultiSelect name="counties" required error={errors.counties} />
+            </div>
             <Field
-              label="Counties or service area in Georgia"
-              name="serviceArea"
-              required
-              error={errors.serviceArea}
-              help="e.g. Fulton, DeKalb, Gwinnett, Cobb — or Metro Atlanta"
-            >
-              {(p) => <input {...p} maxLength={300} className={fieldCls} />}
-            </Field>
-            <Field
-              label="Current truck location (city)"
+              label="Current truck location"
               name="currentLocation"
               required
               error={errors.currentLocation}
-              help="Where the truck is parked or working now, e.g. Marietta"
+              help="Start typing the address where the truck is parked or working now, or use your location."
+              className="md:col-span-2"
             >
               {(p) => (
-                <input {...p} maxLength={120} autoComplete="address-level2" className={fieldCls} />
+                <AddressAutocomplete
+                  id={p.id}
+                  name={p.name}
+                  describedBy={p["aria-describedby"]}
+                  invalid={p["aria-invalid"]}
+                  required
+                  georgiaOnly
+                  placeholder="Street address or city in Georgia…"
+                />
               )}
             </Field>
             <CheckGroup
@@ -328,19 +343,18 @@ export function DriverRegistration() {
             </Field>
           </FormSection>
 
-          <FormSection
-            title="Driver & insurance"
-            note="Recommended — helps us dispatch you sooner."
-          >
+          <FormSection title="Driver & insurance">
             <RadioGroup
               legend="CDL class"
               name="cdlClass"
+              required
               options={CDL_CLASSES}
               error={errors.cdlClass}
             />
             <RadioGroup
               legend="Insurance active?"
               name="insuranceActive"
+              required
               options={[
                 { value: "yes", label: "Yes" },
                 { value: "no", label: "No" },
@@ -360,10 +374,10 @@ export function DriverRegistration() {
 
           <FormSection
             title="Documents"
-            note="Optional now — you can also send them later. PDF, JPG, PNG or WebP, up to 10 MB each. Files are stored privately and only seen by our review team."
+            note="All four are required. PDF, JPG, PNG or WebP, up to 10 MB each. A clear phone photo is fine. Files are stored privately and only seen by our review team."
           >
             {DRIVER_UPLOADS.map((u) => (
-              <Field key={u.field} label={u.label} name={u.field} error={errors[u.field]}>
+              <Field key={u.field} label={u.label} name={u.field} required error={errors[u.field]}>
                 {(p) => (
                   <input
                     {...p}
@@ -520,15 +534,17 @@ function RadioGroup({
   legend,
   name,
   options,
+  required,
   error,
 }: {
   legend: string;
   name: string;
   options: readonly Opt[];
+  required?: boolean;
   error?: string;
 }) {
   return (
-    <ChoiceGroup legend={legend} name={name} error={error}>
+    <ChoiceGroup legend={legend} name={name} required={required} error={error}>
       <div className="flex flex-wrap gap-2">
         {options.map((o, i) => (
           <label
@@ -540,6 +556,9 @@ function RadioGroup({
               name={name}
               value={o.value}
               id={i === 0 ? `fld-${name}` : undefined}
+              required={required}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? `fld-${name}-err` : undefined}
               className="h-4 w-4 accent-[var(--navy)]"
             />
             {o.label}

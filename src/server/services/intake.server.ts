@@ -236,7 +236,7 @@ export async function submitContact(ctx: Ctx, body: unknown) {
 
 // ---------------------------------------------------------------------------------------
 /** Multi-select form fields (sent as repeated keys in multipart form data). */
-const DRIVER_MULTI_FIELDS = new Set(["truckTypes", "availability", "materials"]);
+const DRIVER_MULTI_FIELDS = new Set(["truckTypes", "availability", "materials", "counties"]);
 const DRIVER_BOOL_FIELDS = new Set(["attestGeorgia", "consentPrivacy", "consentContact"]);
 
 /** Converts the multipart registration form into the shape DriverRegistrationSchema expects. */
@@ -271,8 +271,15 @@ export async function submitDriverRegistration(
   const input = parse(DriverRegistrationSchema, body);
   if (await guard(ctx, "driver", input)) return { id: null, statusUrl: null, delivered: false };
   // Validate attachments before saving anything, so a bad file never leaves a half-saved record.
+  // All four documents are required for a registration.
+  for (const u of DRIVER_UPLOADS)
+    if (!files.some((f) => f.field === u.field && f.file.size > 0))
+      throw new AppError("VALIDATION", `${u.label}: please attach this document.`, {
+        field: u.field,
+      });
   const { prepareDriverUploads, storeDriverUploads } = await import("./files.server");
   const uploads = await prepareDriverUploads(files);
+  const serviceArea = input.counties.join(", ");
   const ipHash = await hashIp(ctx.ip);
   const now = new Date().toISOString();
   const truckTypes = input.truckTypes.join(",");
@@ -292,11 +299,11 @@ export async function submitDriverRegistration(
         truck_count: input.truckCount,
         payload_capacity: input.payloadCapacity,
         payload_unit: input.payloadUnit,
-        service_area: input.serviceArea,
+        service_area: serviceArea,
         current_location: input.currentLocation,
         availability,
-        cdl_class: input.cdlClass || null,
-        insurance_active: input.insuranceActive ?? null,
+        cdl_class: input.cdlClass,
+        insurance_active: input.insuranceActive,
         preferred_materials: materials || null,
         travel_radius: input.travelRadius || null,
         georgia_attested: true,
@@ -351,14 +358,11 @@ export async function submitDriverRegistration(
       ["Truck type", labelsFor(TRUCK_TYPES, truckTypes)],
       ["Payload capacity", payload],
       ["Current location", input.currentLocation],
-      ["Service area (GA)", input.serviceArea],
+      ["Counties served (GA)", serviceArea],
       ["Availability", labelsFor(AVAILABILITY, availability)],
       ["Willing to travel", labelFor(TRAVEL_RADIUS, input.travelRadius || null)],
-      ["CDL class", input.cdlClass || "—"],
-      [
-        "Insurance active",
-        input.insuranceActive == null ? "—" : input.insuranceActive ? "Yes" : "No",
-      ],
+      ["CDL class", `Class ${input.cdlClass}`],
+      ["Insurance active", input.insuranceActive ? "Yes" : "No"],
       ["Preferred material", labelsFor(MATERIALS, materials)],
       ["Documents attached", attached.length ? attached.join(", ") : "None"],
       ["Notes", input.notes],
@@ -382,7 +386,7 @@ export async function submitDriverRegistration(
          ["Dump trucks", `${input.truckCount} × ${labelsFor(TRUCK_TYPES, truckTypes)}`],
          ["Payload capacity", payload],
          ["Current location", input.currentLocation],
-         ["Service area (GA)", input.serviceArea],
+         ["Counties served (GA)", serviceArea],
          ["Availability", labelsFor(AVAILABILITY, availability)],
          ["Documents received", attached.length ? attached.join(", ") : "None yet"],
        ])}

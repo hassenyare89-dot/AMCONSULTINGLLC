@@ -209,7 +209,7 @@ export function Contact() {
                     />
                   )}
                 </Field>
-                <Field label="Phone" name="phone" error={errors.phone}>
+                <Field label="Phone" name="phone" required error={errors.phone}>
                   {(p) => (
                     <input
                       {...p}

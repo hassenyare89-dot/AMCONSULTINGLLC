@@ -4,11 +4,70 @@ import { toast } from "sonner";
 import { fieldCls } from "./forms";
 import { cn } from "@/lib/utils";
 
-type NominatimResult = { place_id: number; display_name: string; lat: string; lon: string };
+type Suggestion = { id: string; label: string };
+
+/** Set at build time to use Google Places address suggestions; otherwise OpenStreetMap. */
+const GOOGLE_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
+/** Georgia bounding box (lng/lat). */
+const GA = { west: -85.61, south: 30.35, east: -80.84, north: 35.01 };
+
+async function searchAddresses(q: string, georgia: boolean, signal: AbortSignal) {
+  if (GOOGLE_KEY) {
+    const res = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
+      method: "POST",
+      signal,
+      headers: { "Content-Type": "application/json", "X-Goog-Api-Key": GOOGLE_KEY },
+      body: JSON.stringify({
+        input: q,
+        includedRegionCodes: ["us"],
+        ...(georgia && {
+          locationRestriction: {
+            rectangle: {
+              low: { latitude: GA.south, longitude: GA.west },
+              high: { latitude: GA.north, longitude: GA.east },
+            },
+          },
+        }),
+      }),
+    });
+    if (!res.ok) throw new Error();
+    const data = (await res.json()) as {
+      suggestions?: { placePrediction?: { placeId: string; text: { text: string } } }[];
+    };
+    return (data.suggestions ?? [])
+      .map((x) => x.placePrediction)
+      .filter((p): p is NonNullable<typeof p> => Boolean(p))
+      .map((p) => ({ id: p.placeId, label: p.text.text }));
+  }
+  const box = georgia ? `&viewbox=${GA.west},${GA.north},${GA.east},${GA.south}&bounded=1` : "";
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=us${box}&q=${encodeURIComponent(q)}`,
+    { signal, headers: { Accept: "application/json" } },
+  );
+  if (!res.ok) throw new Error();
+  const data = (await res.json()) as { place_id: number; display_name: string }[];
+  return data.map((r) => ({ id: String(r.place_id), label: r.display_name }));
+}
+
+async function reverseGeocode(lat: number, lon: number): Promise<string | undefined> {
+  if (GOOGLE_KEY) {
+    const res = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${encodeURIComponent(GOOGLE_KEY)}`,
+    );
+    const data = (await res.json()) as { results?: { formatted_address: string }[] };
+    return data.results?.[0]?.formatted_address;
+  }
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+    { headers: { Accept: "application/json" } },
+  );
+  return ((await res.json()) as { display_name?: string }).display_name;
+}
 
 /**
- * Address search via OpenStreetMap Nominatim (no API key). Text typed here is sent from the
- * browser to Nominatim — disclosed in the Privacy Policy. Accessible combobox pattern.
+ * Address search: Google Places when VITE_GOOGLE_MAPS_API_KEY is set at build time, otherwise
+ * OpenStreetMap Nominatim (no key). Text typed here is sent from the browser to that provider —
+ * disclosed in the Privacy Policy. Accessible combobox pattern.
  */
 export function AddressAutocomplete({
   id,
@@ -18,6 +77,7 @@ export function AddressAutocomplete({
   describedBy,
   invalid,
   required,
+  georgiaOnly = false,
 }: {
   id: string;
   name: string;
@@ -26,9 +86,11 @@ export function AddressAutocomplete({
   describedBy?: string;
   invalid?: boolean;
   required?: boolean;
+  /** Limit suggestions to addresses in Georgia. */
+  georgiaOnly?: boolean;
 }) {
   const [value, setValue] = useState("");
-  const [results, setResults] = useState<NominatimResult[]>([]);
+  const [results, setResults] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const [loading, setLoading] = useState(false);
@@ -52,12 +114,7 @@ export function AddressAutocomplete({
     const t = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=us&q=${encodeURIComponent(q)}`,
-          { signal: ctrl.signal, headers: { Accept: "application/json" } },
-        );
-        if (!res.ok) throw new Error();
-        const data = (await res.json()) as NominatimResult[];
+        const data = await searchAddresses(q, georgiaOnly, ctrl.signal);
         setResults(data);
         setOpen(data.length > 0);
         setActive(-1);
@@ -71,7 +128,7 @@ export function AddressAutocomplete({
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [value]);
+  }, [value, georgiaOnly]);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) =>
@@ -80,9 +137,9 @@ export function AddressAutocomplete({
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  const select = (r: NominatimResult) => {
+  const select = (r: Suggestion) => {
     skip.current = true;
-    setValue(r.display_name);
+    setValue(r.label);
     setResults([]);
     setOpen(false);
   };
@@ -94,14 +151,10 @@ export function AddressAutocomplete({
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`,
-            { headers: { Accept: "application/json" } },
-          );
-          const data = (await res.json()) as { display_name?: string };
-          if (data.display_name) {
+          const address = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+          if (address) {
             skip.current = true;
-            setValue(data.display_name);
+            setValue(address);
           } else toast.error("Couldn't find an address for your location");
         } catch {
           toast.error("Location lookup failed");
@@ -182,7 +235,7 @@ export function AddressAutocomplete({
           {loading && <li className="px-3 py-2 text-xs text-muted-foreground">Searching…</li>}
           {results.map((r, i) => (
             <li
-              key={r.place_id}
+              key={r.id}
               id={`${listId}-${i}`}
               role="option"
               aria-selected={i === active}
@@ -196,9 +249,12 @@ export function AddressAutocomplete({
               }}
             >
               <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-green-ink" aria-hidden />
-              <span className="line-clamp-2">{r.display_name}</span>
+              <span className="line-clamp-2">{r.label}</span>
             </li>
           ))}
+          <li aria-hidden className="border-t px-3 py-1.5 text-right text-[10px] text-slate-500">
+            {GOOGLE_KEY ? "Powered by Google" : "© OpenStreetMap contributors"}
+          </li>
         </ul>
       )}
     </div>

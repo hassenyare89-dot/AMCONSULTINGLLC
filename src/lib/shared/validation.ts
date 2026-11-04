@@ -5,12 +5,14 @@ import {
   MATERIALS,
   REGISTRATION_AVAILABILITY,
   REGISTRATION_TRUCK_TYPES,
+  GEORGIA_COUNTIES,
   SERVICE_TYPES,
   US_STATES,
 } from "./domain";
 
 /** Public form contracts shared by the browser (UX validation) and server (authoritative). */
 const MATERIAL_VALUES = MATERIALS.map((m) => m.value) as [string, ...string[]];
+const GEORGIA_COUNTY_VALUES = [...GEORGIA_COUNTIES] as [string, ...string[]];
 
 const optionalText = (max: number) => z.string().trim().max(max).optional().or(z.literal(""));
 const phone = z
@@ -29,7 +31,7 @@ export const antiSpam = {
 export const ContactSchema = z.object({
   name: z.string().trim().min(1, "Contact name is required").max(100),
   email: z.string().trim().email("Please enter a valid email").max(255),
-  phone: phone.optional().or(z.literal("")),
+  phone: phone.min(7, "Phone number is required"),
   company: optionalText(120),
   address: optionalText(300),
   service: optionalText(120),
@@ -51,11 +53,6 @@ const optionalMulti = <T extends readonly [string, ...string[]]>(values: T) =>
     (v) => [...new Set((Array.isArray(v) ? v : v == null || v === "" ? [] : [v]).map(String))],
     z.array(z.enum(values)),
   );
-const yesNo = z
-  .enum(["yes", "no", ""])
-  .optional()
-  .transform((v) => (v === "yes" ? true : v === "no" ? false : undefined));
-
 /** Georgia dump truck owner-operator registration (public form). */
 export const DriverRegistrationSchema = z.object({
   ownerName: z.string().trim().min(1, "Owner / driver name is required").max(100),
@@ -86,11 +83,17 @@ export const DriverRegistrationSchema = z.object({
     .positive("Enter the payload capacity")
     .max(200, "That looks too large — enter capacity per truck"),
   payloadUnit: z.enum(["tons", "cubic-yards"], { error: "Choose tons or cubic yards" }),
-  serviceArea: z.string().trim().min(2, "Enter the Georgia counties or area you serve").max(300),
-  currentLocation: z.string().trim().min(2, "Enter the city where the truck is now").max(120),
+  counties: multi(GEORGIA_COUNTY_VALUES, "Select at least one Georgia county"),
+  currentLocation: z
+    .string()
+    .trim()
+    .min(3, "Enter the address or city where the truck is now")
+    .max(300),
   availability: multi(REGISTRATION_AVAILABILITY, "Select your availability"),
-  cdlClass: z.enum(["A", "B", ""]).optional(),
-  insuranceActive: yesNo,
+  cdlClass: z.enum(["A", "B"], { error: "Select the CDL class" }),
+  insuranceActive: z
+    .enum(["yes", "no"], { error: "Tell us whether the truck's insurance is active" })
+    .transform((v) => v === "yes"),
   materials: optionalMulti(MATERIAL_VALUES),
   travelRadius: z.enum(["25", "50", "100", "statewide", ""]).optional(),
   notes: optionalText(1500),
