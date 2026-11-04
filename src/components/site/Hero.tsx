@@ -212,7 +212,7 @@ export function HeroView({ c, preview = false }: { c: HeroContent; preview?: boo
           initial={reduce ? false : { opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
-          className="rounded-3xl border border-white/15 bg-black/50 p-5 text-white shadow-[0_30px_80px_-20px_rgb(0_0_0/0.6)] backdrop-blur-md sm:p-8 lg:col-span-8 xl:col-span-7"
+          className="hero-copy rounded-3xl border border-white/25 bg-black/35 p-5 text-white shadow-[0_30px_80px_-30px_rgb(0_0_0/0.5)] sm:p-8 lg:col-span-8 xl:col-span-7"
         >
           {c.eyebrow && (
             <span className="glass-dark inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand-green-soft">
