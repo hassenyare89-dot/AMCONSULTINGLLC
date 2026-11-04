@@ -3,7 +3,7 @@ import { gotoReady } from "./helpers";
 
 const PAGES: [string, RegExp][] = [
   ["/", /Dump Truck Dispatching/i],
-  ["/about", /About AM Consulting/i],
+  ["/about", /About AM Consulting & Hauling/i],
   ["/services", /Dispatching, hauling/i],
   ["/services/dump-truck-dispatching", /Dump Truck Dispatching/i],
   ["/who-we-serve", /Built for hauling/i],
@@ -28,7 +28,7 @@ test.describe("public pages", () => {
       expect(res?.status()).toBe(200);
       await expect(page.locator("h1")).toHaveCount(1);
       await expect(page.locator("h1")).toHaveText(h1);
-      await expect(page).toHaveTitle(/AM Consulting LLC/);
+      await expect(page).toHaveTitle(/AM Consulting & Hauling/);
       const robotsMeta = page.locator('meta[name="robots"]');
       const robots = (await robotsMeta.count())
         ? await robotsMeta.first().getAttribute("content")

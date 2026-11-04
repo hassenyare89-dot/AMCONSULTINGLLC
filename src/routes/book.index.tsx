@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/book/")({
   head: ({ matches }) =>
     pageHead("/book", matches, {
-      title: "Book a consultation | AM Consulting LLC",
+      title: "Book a consultation | AM Consulting & Hauling",
       description:
         "Schedule a consultation about dispatch coordination, hauling support, or transportation consulting.",
     }),

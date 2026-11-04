@@ -5,8 +5,8 @@ import { pageHead, useSiteContent } from "@/lib/content/site";
 export const Route = createFileRoute("/privacy/")({
   head: ({ matches }) =>
     pageHead("/privacy", matches, {
-      title: "Privacy Policy | AM Consulting LLC",
-      description: "How AM Consulting LLC collects, uses, and protects personal information.",
+      title: "Privacy Policy | AM Consulting & Hauling",
+      description: "How AM Consulting & Hauling collects, uses, and protects personal information.",
     }),
   component: Page,
 });

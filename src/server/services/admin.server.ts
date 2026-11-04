@@ -480,7 +480,7 @@ export async function inviteStaff(ctx: StaffContext, input: unknown, request?: R
     template: "auth.invite",
     html: emailLayout(
       "Your AMCMS account",
-      `<p style="color:#4B5563">You've been given access to the AM Consulting management system. Choose a password to activate your account. The link expires in 7 days.</p>${emailButton("Set your password", invite.link)}`,
+      `<p style="color:#4B5563">You've been given access to the AM Consulting &amp; Hauling management system. Choose a password to activate your account. The link expires in 7 days.</p>${emailButton("Set your password", invite.link)}`,
     ),
   });
   // If email isn't configured, hand the one-time link to the inviting admin to deliver securely.

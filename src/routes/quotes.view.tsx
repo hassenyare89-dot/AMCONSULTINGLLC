@@ -11,7 +11,7 @@ export const Route = createFileRoute("/quotes/view")({
   validateSearch: stringParams("token"),
   head: () => ({
     meta: [
-      { title: "Your estimate | AM Consulting LLC" },
+      { title: "Your estimate | AM Consulting & Hauling" },
       { name: "robots", content: "noindex,nofollow" },
       { name: "referrer", content: "no-referrer" },
     ],

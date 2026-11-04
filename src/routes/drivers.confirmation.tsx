@@ -26,7 +26,7 @@ type Summary = {
 export const Route = createFileRoute("/drivers/confirmation")({
   head: () => ({
     meta: [
-      { title: "Registration received | AM Consulting LLC" },
+      { title: "Registration received | AM Consulting & Hauling" },
       { name: "robots", content: "noindex" },
     ],
   }),

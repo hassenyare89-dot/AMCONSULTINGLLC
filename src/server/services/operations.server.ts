@@ -496,7 +496,7 @@ export async function updateAppointment(ctx: StaffContext, input: unknown) {
           : "Your consultation is confirmed";
     const r = await sendEmail({
       to: cur.email,
-      subject: `${title} — AM Consulting LLC`,
+      subject: `${title} — AM Consulting & Hauling`,
       template: `appointment.${rescheduled ? "rescheduled" : newStatus}`,
       relatedType: "appointment",
       relatedId: p.id,

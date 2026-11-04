@@ -8,7 +8,7 @@ export const Route = createFileRoute("/book/manage")({
   validateSearch: stringParams("token"),
   head: () => ({
     meta: [
-      { title: "Manage consultation | AM Consulting LLC" },
+      { title: "Manage consultation | AM Consulting & Hauling" },
       { name: "robots", content: "noindex,nofollow" },
       { name: "referrer", content: "no-referrer" },
     ],

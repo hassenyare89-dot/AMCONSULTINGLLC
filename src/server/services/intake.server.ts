@@ -212,7 +212,7 @@ export async function submitContact(ctx: Ctx, body: unknown) {
   });
   const confirm = await sendEmail({
     to: input.email,
-    subject: "We received your message — AM Consulting LLC",
+    subject: "We received your message — AM Consulting & Hauling",
     template: "public.contact_confirmation",
     relatedType: "contact_submission",
     relatedId: sub.id,
@@ -373,13 +373,13 @@ export async function submitDriverRegistration(
   });
   const confirm = await sendEmail({
     to: input.email,
-    subject: "Your AM Consulting LLC registration was received",
+    subject: "Your AM Consulting & Hauling registration was received",
     template: "public.driver_confirmation",
     relatedType: "driver_registration",
     relatedId: reg.id,
     html: emailLayout(
       `Registration received, ${e(input.ownerName)}`,
-      `<p style="color:#4B5563">Thanks for registering with AM Consulting LLC. Our team will review your submission and contact you, usually within one business day.</p>
+      `<p style="color:#4B5563">Thanks for registering with AM Consulting &amp; Hauling. Our team will review your submission and contact you, usually within one business day.</p>
        ${emailTable([
          ["USDOT", input.dotNumber],
          ["MC", input.mcNumber || "—"],
@@ -605,7 +605,7 @@ export async function submitQuoteRequest(ctx: Ctx, body: unknown) {
   });
   const confirm = await sendEmail({
     to: input.email,
-    subject: `Quote request ${qr.ref} received — AM Consulting LLC`,
+    subject: `Quote request ${qr.ref} received — AM Consulting & Hauling`,
     template: "public.quote_request_confirmation",
     relatedType: "quote_request",
     relatedId: qr.id,

@@ -68,7 +68,7 @@ export async function sendEmail(opts: {
   return result;
 }
 
-const BRAND = { navy: "#072A6C", green: "#0DAA77", name: "AM Consulting LLC" };
+const BRAND = { navy: "#072A6C", green: "#0DAA77", name: "AM Consulting &amp; Hauling" };
 
 export function siteUrl(request?: Request): string {
   const configured = env.publicSiteUrl();

@@ -17,7 +17,7 @@ export type ServiceItem = {
 
 export const DEFAULT_CONTENT = {
   "site.brand": {
-    companyName: "AM Consulting LLC",
+    companyName: "AM Consulting & Hauling",
     legalName: "",
     tagline: "Keeping trucks moving. Keeping projects on schedule.",
     logoUrl: "",
@@ -38,7 +38,7 @@ export const DEFAULT_CONTENT = {
     headlineAccent: "Dispatching & Hauling Consulting",
     subheadline: "Keeping Trucks Moving. Keeping Projects On Schedule.",
     description:
-      "AM Consulting LLC provides professional dispatching coordination, hauling consulting, transportation support, and construction logistics solutions for truck operators, contractors, and project teams.",
+      "AM Consulting & Hauling provides professional dispatching coordination, hauling consulting, transportation support, and construction logistics solutions for truck operators, contractors, and project teams.",
     primaryCtaLabel: "Request Dispatch Services",
     primaryCtaHref: "/quote",
     secondaryCtaLabel: "Register Your Truck",
@@ -70,7 +70,7 @@ export const DEFAULT_CONTENT = {
       "Tell us about your project or your fleet. Our team will follow up to talk through scheduling, coordination, and next steps.",
   },
   about: {
-    title: "About AM Consulting",
+    title: "About AM Consulting & Hauling",
     intro:
       "We specialize in dispatching and logistics support for the hauling industry. Our goal is to help truck owners increase utilization while providing contractors with reliable hauling solutions for their projects.",
     mission:
@@ -298,59 +298,59 @@ export const DEFAULT_CONTENT = {
   },
   footer: {
     blurb:
-      "AM Consulting LLC provides dispatching coordination, hauling consulting, and logistics support that keep construction projects on schedule.",
+      "AM Consulting & Hauling provides dispatching coordination, hauling consulting, and logistics support that keep construction projects on schedule.",
     links: [] as { label: string; href: string }[],
   },
   seo: {
     pages: [
       {
         path: "/",
-        title: "Dump Truck Dispatching & Hauling Consulting | AM Consulting LLC",
+        title: "Dump Truck Dispatching & Hauling Consulting | AM Consulting & Hauling",
         description:
           "Professional dump truck dispatching, load coordination, and hauling logistics in Atlanta, GA. Keeping trucks moving and projects on schedule.",
       },
       {
         path: "/about",
-        title: "About | AM Consulting LLC",
+        title: "About | AM Consulting & Hauling",
         description:
           "Dispatching and logistics support for the hauling industry — helping truck owners and contractors stay on schedule.",
       },
       {
         path: "/services",
-        title: "Services | AM Consulting LLC",
+        title: "Services | AM Consulting & Hauling",
         description:
           "Dump truck dispatching, load coordination, project scheduling, hauling logistics, transportation consulting, and contractor support.",
       },
       {
         path: "/who-we-serve",
-        title: "Who We Serve | AM Consulting LLC",
+        title: "Who We Serve | AM Consulting & Hauling",
         description:
           "Owner-operators, fleets, contractors, excavation, landscaping, and site development teams.",
       },
       {
         path: "/process",
-        title: "How It Works | AM Consulting LLC",
+        title: "How It Works | AM Consulting & Hauling",
         description:
           "Consultation, assessment, dispatch coordination, and follow-up — a clear process from first call to final load.",
       },
       {
         path: "/quote",
-        title: "Request a Quote | AM Consulting LLC",
+        title: "Request a Quote | AM Consulting & Hauling",
         description: "Request dispatch or hauling coordination for your project.",
       },
       {
         path: "/contact",
-        title: "Contact | AM Consulting LLC",
+        title: "Contact | AM Consulting & Hauling",
         description: "Talk with our hauling logistics team.",
       },
       {
         path: "/drivers",
-        title: "Driver Registration | AM Consulting LLC",
+        title: "Driver Registration | AM Consulting & Hauling",
         description: "Owner-operators and dump truck fleets — register with our dispatch team.",
       },
       {
         path: "/faq",
-        title: "FAQs | AM Consulting LLC",
+        title: "FAQs | AM Consulting & Hauling",
         description:
           "Answers to common questions about our dispatching and hauling coordination services.",
       },

@@ -268,7 +268,7 @@ export async function sendEstimate(ctx: StaffContext, input: unknown, request?: 
   const link = `${siteUrl(request)}/quotes/view?token=${encodeURIComponent(token)}`;
   const res = await sendEmail({
     to: estimate.customer_email,
-    subject: `Estimate ${estimate.estimate_number} from AM Consulting LLC`,
+    subject: `Estimate ${estimate.estimate_number} from AM Consulting & Hauling`,
     template: "quote.sent",
     relatedType: "estimate",
     relatedId: id,

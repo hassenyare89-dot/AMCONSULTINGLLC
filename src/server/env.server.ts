@@ -7,7 +7,7 @@ const read = (k: string): string | undefined => {
 export const env = {
   resendApiKey: () => read("RESEND_API_KEY"),
   leadRecipient: () => read("LEAD_RECIPIENT_EMAIL") ?? "info@amconsultingllc.net",
-  mailFrom: () => read("LEAD_FROM_EMAIL") ?? "AM Consulting LLC <onboarding@resend.dev>",
+  mailFrom: () => read("LEAD_FROM_EMAIL") ?? '"AM Consulting & Hauling" <onboarding@resend.dev>',
   publicSiteUrl: () => read("PUBLIC_SITE_URL"),
   ipHashSalt: () => read("IP_HASH_SALT") ?? "amcms-default-salt-change-me",
   /** MFA is enforced for staff unless explicitly disabled (local development only). */

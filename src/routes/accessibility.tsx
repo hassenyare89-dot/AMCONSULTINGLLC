@@ -5,7 +5,7 @@ import { pageHead, useSiteContent } from "@/lib/content/site";
 export const Route = createFileRoute("/accessibility")({
   head: ({ matches }) =>
     pageHead("/accessibility", matches, {
-      title: "Accessibility Statement | AM Consulting LLC",
+      title: "Accessibility Statement | AM Consulting & Hauling",
       description: "Our commitment to an accessible website and how to request assistance.",
     }),
   component: Page,

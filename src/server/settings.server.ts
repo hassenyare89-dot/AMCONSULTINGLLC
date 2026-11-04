@@ -21,7 +21,7 @@ export const SETTINGS_DEFAULTS: SettingsShape = {
     valid_days: 30,
     tax_rate: 0,
     terms:
-      "This estimate is for planning purposes only and is not a binding commitment until confirmed in writing by AM Consulting LLC.",
+      "This estimate is for planning purposes only and is not a binding commitment until confirmed in writing by AM Consulting & Hauling.",
   },
   "retention.policy": {
     contact_submissions_days: 730,
