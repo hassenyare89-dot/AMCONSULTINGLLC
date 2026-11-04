@@ -46,7 +46,7 @@ export const DEFAULT_CONTENT = {
     tertiaryCtaLabel: "Contact Our Team",
     tertiaryCtaHref: "/contact",
     badges: ["Dispatch coordination", "Load & schedule planning", "Owner-operators & contractors"],
-    mode: "auto",
+    mode: "video",
     videoUrl: "",
     posterUrl: "",
     modelUrl: "",

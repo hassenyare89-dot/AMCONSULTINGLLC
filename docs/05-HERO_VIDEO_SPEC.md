@@ -1,24 +1,35 @@
 # Hero video — status and replacement specification
 
-## Status of the original video
+## Current landing video (2026-11-04)
 
-`src/assets/hero.mp4.asset.json` is a **pointer**, not a video. It references Lovable's asset CDN at the
-relative path `/__l5e/assets-v1/b25cad92-adc0-4c4a-a071-541ad0d294b8/hero.mp4` (6.9 MB, uploaded
-2026-06-30). The file itself is **not in the ZIP**.
+The owner supplied a new landing video (`Video2.mp4`: aerial view of dump trucks and loaders at a sand
+quarry, 1200×630, 30 fps, 23 s). It is bundled in the repository, so it works on any host:
 
-* An attempt to fetch it from `https://amconsultingllc.net/__l5e/…` was blocked by this development
-  environment's network policy, so **the original video was not recovered** and was not verified.
-* The pointer is preserved. On the Lovable deployment (which serves `/__l5e/…`) the original video should
-  keep working. If the request fails anywhere, the `<video>` `onError` handler switches the hero to the
-  bundled poster image `src/assets/hero-truck.jpg`.
-* To recover it authoritatively: open the project in Lovable → Assets, download `hero.mp4`, then upload it
-  in **AMCMS → Website CMS → Media library** and select it in **Homepage hero → Background video**.
+| File | What | Size |
+|---|---|---|
+| `public/media/hero.webm` | VP9, no audio (preferred by browsers that support it) | ~0.9 MB |
+| `public/media/hero.mp4` | H.264 High, `yuv420p`, `+faststart`, no audio (universal fallback) | ~2.1 MB |
+| `public/media/hero-poster.jpg` | First frame; shown instantly, for reduced motion / Save-Data, and if video fails | ~100 KB |
+
+The audio track was removed (the hero always plays muted) and the clip re-encoded for fast loading
+(original 6.9 MB). The old Lovable-CDN pointer `src/assets/hero.mp4.asset.json` was removed — it only
+worked on Lovable hosting.
+
+Notes:
+* In the Docker deployment Caddy serves `/media/*` directly from `public/media` (byte-range requests,
+  which Safari/iOS require for video, plus a 7-day cache). Replacing the files and running
+  `docker compose up -d --build` updates the video.
+* Source resolution is 1200×630, so it is upscaled on large screens (slightly soft on 1440p+ monitors).
+  A 1920×1080 master of the same footage would look sharper — upload it in the CMS (below) if available.
+* Overrides: **AMCMS → Website CMS → Homepage hero → Background video / Poster** take precedence over the
+  bundled files.
 
 ## How the hero chooses a background
 
-`home.hero.mode` (CMS): `auto` (default) · `3d` · `video` · `image`. In `auto`: 3D on capable desktops,
-otherwise video, otherwise image. Reduced-motion and Save-Data always get the static image. Video and 3D
-never render at the same time.
+`home.hero.mode` (CMS): `video` (default) · `auto` · `3d` · `image`. `video` plays the landing video on
+every device. `auto` uses the 3D truck scene on capable desktops and video elsewhere. Reduced-motion and
+Save-Data always get the static poster. Video and 3D never render at the same time. On phones/tablets an
+extra navy scrim keeps the headline readable over the bright footage.
 
 ## Replacement video specification
 

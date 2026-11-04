@@ -74,6 +74,7 @@ services:
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./public/media:/srv/media:ro
       - caddy_data:/data
       - caddy_config:/config
     networks: [web]

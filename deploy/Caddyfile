@@ -16,5 +16,11 @@ www.{$DOMAIN} {
 	# Cron endpoint is only for the internal scheduler.
 	@cron path /api/cron/*
 	respond @cron 404
+	# Landing video/poster straight from disk: supports byte ranges (required by Safari/iOS) and caching.
+	handle_path /media/* {
+		root * /srv/media
+		header Cache-Control "public, max-age=604800"
+		file_server
+	}
 	reverse_proxy app:3000
 }

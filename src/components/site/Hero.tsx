@@ -11,13 +11,15 @@ import {
   Truck,
 } from "lucide-react";
 import { SmartLink } from "./SmartLink";
-import heroVideoAsset from "@/assets/hero.mp4.asset.json";
-import heroPoster from "@/assets/hero-truck.jpg";
 import { Button } from "@/components/ui/button";
 import { safeUrl } from "@/lib/shared/sanitize";
 import type { SiteContent } from "@/lib/content/defaults";
 
 const TruckScene = lazy(() => import("./three/TruckScene"));
+
+/** Bundled landing video (aerial dump trucks at a sand quarry), served from public/media. */
+const DEFAULT_VIDEO = { webm: "/media/hero.webm", mp4: "/media/hero.mp4" };
+const DEFAULT_POSTER = "/media/hero-poster.jpg";
 
 type HeroContent = SiteContent["home.hero"];
 type Mode = "3d" | "video" | "image";
@@ -82,8 +84,8 @@ export function HeroView({ c, preview = false }: { c: HeroContent; preview?: boo
   const scroll = useRef(0);
   const pointer = useRef({ x: 0, y: 0 });
   const videoRef = useRef<HTMLVideoElement>(null);
-  const poster = c.posterUrl ? safeUrl(c.posterUrl) : heroPoster;
-  const videoSrc = c.videoUrl ? safeUrl(c.videoUrl) : heroVideoAsset.url;
+  const poster = c.posterUrl ? safeUrl(c.posterUrl) : DEFAULT_POSTER;
+  const customVideo = c.videoUrl ? safeUrl(c.videoUrl) : null;
 
   useEffect(() => {
     if (preview) return;
@@ -180,7 +182,7 @@ export function HeroView({ c, preview = false }: { c: HeroContent; preview?: boo
         {showMotion && mode === "video" && (
           <video
             ref={videoRef}
-            src={videoSrc}
+            src={customVideo ?? undefined}
             poster={poster}
             autoPlay={!paused}
             muted
@@ -190,7 +192,15 @@ export function HeroView({ c, preview = false }: { c: HeroContent; preview?: boo
             aria-hidden="true"
             className="absolute inset-0 h-full w-full object-cover"
             onError={() => setMode("image")}
-          />
+          >
+            {!customVideo && (
+              <>
+                <source src={DEFAULT_VIDEO.webm} type="video/webm" />
+                {/* A <source> failure doesn't fire on <video>; fall back once the last one fails. */}
+                <source src={DEFAULT_VIDEO.mp4} type="video/mp4" onError={() => setMode("image")} />
+              </>
+            )}
+          </video>
         )}
         {showMotion && mode === "3d" && (
           <div
@@ -214,6 +224,11 @@ export function HeroView({ c, preview = false }: { c: HeroContent; preview?: boo
             background:
               "linear-gradient(100deg, color-mix(in oklab, var(--navy-deep) 88%, transparent) 0%, color-mix(in oklab, var(--navy) 55%, transparent) 48%, transparent 78%)",
           }}
+        />
+        {/* Phones/tablets: text spans the full width, so add an even scrim for contrast. */}
+        <div
+          className="pointer-events-none absolute inset-0 lg:hidden"
+          style={{ background: "color-mix(in oklab, var(--navy-deep) 55%, transparent)" }}
         />
         <div
           className="pointer-events-none absolute inset-x-0 bottom-0 h-40"

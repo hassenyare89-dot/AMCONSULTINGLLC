@@ -191,14 +191,14 @@ export const CMS_SECTIONS: readonly CmsSectionDef[] = [
         label: "Background video (MP4/WebM)",
         type: "media",
         kind: "video",
-        help: "Blank = original hero video asset.",
+        help: "Blank = bundled landing video (public/media/hero.mp4).",
       },
       {
         name: "posterUrl",
         label: "Poster / fallback image",
         type: "media",
         kind: "image",
-        help: "Blank = bundled hero-truck.jpg.",
+        help: "Blank = first frame of the bundled landing video.",
       },
       {
         name: "modelUrl",
