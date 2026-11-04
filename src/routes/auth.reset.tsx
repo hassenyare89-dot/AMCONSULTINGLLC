@@ -7,7 +7,7 @@ import { AuthCard } from "@/components/site/AuthCard";
 export const Route = createFileRoute("/auth/reset")({
   head: () => ({
     meta: [
-      { title: "Reset password | AM Consulting LLC" },
+      { title: "Reset password | AM Consulting & Hauling" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),

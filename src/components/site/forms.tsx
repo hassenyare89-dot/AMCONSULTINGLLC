@@ -161,7 +161,8 @@ export function ConsentCheckbox({
               <Link to="/privacy" className="font-medium text-navy underline" target="_blank">
                 Privacy Policy
               </Link>{" "}
-              and agree that AM Consulting LLC may use this information to respond to my request.
+              and agree that AM Consulting & Hauling may use this information to respond to my
+              request.
             </>
           )}
           {required && (

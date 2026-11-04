@@ -14,7 +14,7 @@ const LOGO_MARK = "/media/logo-mark.png";
 export function Logo({
   light = false,
   src,
-  name = "AM Consulting LLC",
+  name = "AM Consulting & Hauling",
 }: {
   light?: boolean;
   src?: string;

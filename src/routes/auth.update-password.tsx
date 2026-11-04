@@ -13,7 +13,7 @@ export const Route = createFileRoute("/auth/update-password")({
   validateSearch: stringParams("token", "invite"),
   head: () => ({
     meta: [
-      { title: "Set password | AM Consulting LLC" },
+      { title: "Set password | AM Consulting & Hauling" },
       { name: "robots", content: "noindex,nofollow" },
       { name: "referrer", content: "no-referrer" },
     ],

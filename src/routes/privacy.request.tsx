@@ -20,9 +20,9 @@ import {
 export const Route = createFileRoute("/privacy/request")({
   head: ({ matches }) =>
     pageHead("/privacy/request", matches, {
-      title: "Privacy request | AM Consulting LLC",
+      title: "Privacy request | AM Consulting & Hauling",
       description:
-        "Ask to access, correct, or delete the personal information AM Consulting LLC holds about you.",
+        "Ask to access, correct, or delete the personal information AM Consulting & Hauling holds about you.",
     }),
   component: PrivacyRequestPage,
 });

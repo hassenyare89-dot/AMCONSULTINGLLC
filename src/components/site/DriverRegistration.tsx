@@ -419,7 +419,8 @@ export function DriverRegistration() {
               <Link to="/privacy" target="_blank" className="font-medium text-navy underline">
                 Privacy Policy
               </Link>{" "}
-              and agree that AM Consulting LLC may use this information to review my registration.
+              and agree that AM Consulting & Hauling may use this information to review my
+              registration.
             </ConsentCheckbox>
             <ConsentCheckbox name="consentContact" required={false}>
               I agree to be contacted by phone or email about dispatch opportunities. (Optional — we

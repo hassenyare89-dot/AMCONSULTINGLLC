@@ -40,7 +40,7 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
-/* AM Consulting LLC design tokens.
+/* AM Consulting & Hauling design tokens.
    Palette: navy #072A6C · dark navy #041A3D · green #0DAA77 · light #F4F7FB · charcoal #1F2937.
    Contrast notes (WCAG 2.2 AA): #0DAA77 on white is 2.99:1, so it is used for fills/large text
    only; small green text on light surfaces uses --brand-green-ink (#087A55, 5.35:1). Green buttons

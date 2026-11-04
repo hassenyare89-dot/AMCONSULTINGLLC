@@ -22,8 +22,8 @@ export const Route = createFileRoute("/services/$slug")({
       `/services/${params.slug}`,
       matches,
       svc
-        ? { title: `${svc.title} | AM Consulting LLC`, description: svc.summary }
-        : { title: "Service not found | AM Consulting LLC", noindex: true },
+        ? { title: `${svc.title} | AM Consulting & Hauling`, description: svc.summary }
+        : { title: "Service not found | AM Consulting & Hauling", noindex: true },
     );
   },
   component: ServiceDetail,

@@ -42,7 +42,7 @@ export function pageHead(
   const pages = (root?.content ?? DEFAULT_CONTENT).seo.pages;
   const fallback = DEFAULT_CONTENT.seo.pages.find((p) => p.path === path);
   const entry = pages.find((p) => p.path === path) ?? fallback;
-  const title = extra.title ?? entry?.title ?? "AM Consulting LLC";
+  const title = extra.title ?? entry?.title ?? "AM Consulting & Hauling";
   const description =
     extra.description ?? entry?.description ?? DEFAULT_CONTENT.seo.pages[0].description;
   const url = `${SITE_URL}${path === "/" ? "/" : path}`;

@@ -29,7 +29,7 @@ export const Route = createFileRoute("/drivers/status")({
   validateSearch: stringParams("token", "id"),
   head: () => ({
     meta: [
-      { title: "Application status | AM Consulting LLC" },
+      { title: "Application status | AM Consulting & Hauling" },
       { name: "robots", content: "noindex,nofollow" },
       { name: "referrer", content: "no-referrer" },
     ],

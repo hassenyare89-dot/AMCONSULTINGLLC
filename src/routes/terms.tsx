@@ -5,8 +5,8 @@ import { pageHead, useSiteContent } from "@/lib/content/site";
 export const Route = createFileRoute("/terms")({
   head: ({ matches }) =>
     pageHead("/terms", matches, {
-      title: "Terms of Use | AM Consulting LLC",
-      description: "Terms governing use of the AM Consulting LLC website.",
+      title: "Terms of Use | AM Consulting & Hauling",
+      description: "Terms governing use of the AM Consulting & Hauling website.",
     }),
   component: Page,
 });

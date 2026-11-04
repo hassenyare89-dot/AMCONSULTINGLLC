@@ -221,7 +221,7 @@ export async function changeApplicationStatus(ctx: StaffContext, input: unknown)
     };
     const res = await sendEmail({
       to: app.email,
-      subject: `${headline[p.status]} — AM Consulting LLC`,
+      subject: `${headline[p.status]} — AM Consulting & Hauling`,
       template: `driver.status.${p.status}`,
       relatedType: "driver_registration",
       relatedId: p.id,

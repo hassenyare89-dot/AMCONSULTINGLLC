@@ -1,4 +1,4 @@
-# AM Consulting LLC — Website & AMCMS
+# AM Consulting & Hauling — Website & AMCMS
 
 Public website for **amconsultingllc.net** plus the **AM Consulting Management System (AMCMS)**, a private
 operations platform at `/admin` for drivers, fleet, dispatch, projects, CRM, quotes, appointments,

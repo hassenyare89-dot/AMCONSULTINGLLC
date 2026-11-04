@@ -90,7 +90,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   staleTime: 60_000,
   head: ({ loaderData }) => {
     const brand = (loaderData?.content ?? DEFAULT_CONTENT)["site.brand"];
-    const title = "Dump Truck Dispatching & Hauling Consulting | AM Consulting LLC";
+    const title = "Dump Truck Dispatching & Hauling Consulting | AM Consulting & Hauling";
     const description =
       "Professional dump truck dispatching, load coordination, and hauling logistics in Atlanta, GA. Keeping trucks moving and projects on schedule.";
     return {

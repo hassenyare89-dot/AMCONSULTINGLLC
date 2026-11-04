@@ -11,7 +11,7 @@ export const Route = createFileRoute("/auth/")({
   validateSearch: stringParams("reason"),
   head: () => ({
     meta: [
-      { title: "Staff sign in | AM Consulting LLC" },
+      { title: "Staff sign in | AM Consulting & Hauling" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
@@ -48,7 +48,7 @@ function AuthPage() {
   return (
     <AuthCard
       title="Staff sign in"
-      subtitle="AM Consulting Management System — authorised staff only."
+      subtitle="AM Consulting & Hauling management system — authorised staff only."
     >
       {reason === "timeout" && (
         <p role="status" className="mt-4 rounded-md bg-amber-50 p-3 text-sm text-amber-900">

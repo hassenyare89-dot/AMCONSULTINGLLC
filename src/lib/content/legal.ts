@@ -1,14 +1,14 @@
 /**
  * DRAFT legal content. These drafts describe what this codebase actually does, but they are
- * NOT legal advice and must be reviewed by AM Consulting LLC and qualified counsel before
+ * NOT legal advice and must be reviewed by AM Consulting &amp; Hauling and qualified counsel before
  * publication. Items in [brackets] require company input.
  */
 const DRAFT_BANNER =
-  "<p><strong>Draft notice:</strong> This document is a draft pending review by AM Consulting LLC and qualified legal counsel.</p>";
+  "<p><strong>Draft notice:</strong> This document is a draft pending review by AM Consulting &amp; Hauling and qualified legal counsel.</p>";
 
 const privacy = `${DRAFT_BANNER}
 <h2>Who we are</h2>
-<p>This website (amconsultingllc.net) is operated by [registered legal name — to be verified], doing business as AM Consulting LLC, 5300 Memorial Dr. Unit 103C, Stone Mountain, GA 30083 ("we", "us"). Contact: <a href="mailto:info@amconsultingllc.net">info@amconsultingllc.net</a>, 404-862-0305.</p>
+<p>This website (amconsultingllc.net) is operated by [registered legal name — to be verified], doing business as AM Consulting &amp; Hauling, 5300 Memorial Dr. Unit 103C, Stone Mountain, GA 30083 ("we", "us"). Contact: <a href="mailto:info@amconsultingllc.net">info@amconsultingllc.net</a>, 404-862-0305.</p>
 <h2>Information we collect</h2>
 <ul>
 <li><strong>Contact and quote requests:</strong> name, email, phone, company, job/pickup and destination locations, service details and anything you include in your message.</li>
@@ -50,7 +50,7 @@ const terms = `${DRAFT_BANNER}
 <h2>Acceptance</h2>
 <p>By using amconsultingllc.net you agree to these Terms of Use. If you do not agree, please do not use the site.</p>
 <h2>Nature of our services</h2>
-<p>AM Consulting LLC provides administrative dispatch coordination, hauling consulting and logistics support. Information on this website is general and is not a binding offer. Any services are subject to a separate written agreement. [Company and counsel to confirm the company's regulatory status. Nothing on this site states or implies that AM Consulting LLC holds motor carrier or freight broker operating authority unless that has been verified.]</p>
+<p>AM Consulting &amp; Hauling provides administrative dispatch coordination, hauling consulting and logistics support. Information on this website is general and is not a binding offer. Any services are subject to a separate written agreement. [Company and counsel to confirm the company's regulatory status. Nothing on this site states or implies that AM Consulting &amp; Hauling holds motor carrier or freight broker operating authority unless that has been verified.]</p>
 <h2>Estimates and quotes</h2>
 <p>Estimates provided through this website are for planning purposes only and are not binding commitments until confirmed in a written agreement signed by an authorised representative.</p>
 <h2>Your submissions</h2>
@@ -58,7 +58,7 @@ const terms = `${DRAFT_BANNER}
 <h2>Acceptable use</h2>
 <p>You may not attempt to gain unauthorised access to the website or its systems, interfere with its operation, submit spam or malicious content, or scrape it in a way that burdens our systems.</p>
 <h2>Intellectual property</h2>
-<p>The website content, logo and design belong to AM Consulting LLC or its licensors and may not be reused without permission.</p>
+<p>The website content, logo and design belong to AM Consulting &amp; Hauling or its licensors and may not be reused without permission.</p>
 <h2>Disclaimers and limitation of liability</h2>
 <p>The website is provided "as is". To the extent permitted by law, we disclaim implied warranties and are not liable for indirect or consequential damages arising from use of the website. [Counsel to finalise.]</p>
 <h2>Governing law</h2>
@@ -68,7 +68,7 @@ const terms = `${DRAFT_BANNER}
 
 const accessibility = `${DRAFT_BANNER}
 <h2>Our commitment</h2>
-<p>AM Consulting LLC wants everyone to be able to use this website. We aim to conform to the Web Content Accessibility Guidelines (WCAG) 2.2 Level AA.</p>
+<p>AM Consulting &amp; Hauling wants everyone to be able to use this website. We aim to conform to the Web Content Accessibility Guidelines (WCAG) 2.2 Level AA.</p>
 <h2>What we have done</h2>
 <ul>
 <li>Semantic page structure with headings, landmarks and a "skip to main content" link.</li>
