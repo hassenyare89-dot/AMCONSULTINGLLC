@@ -1,0 +1,169 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-navy: var(--navy);
+  --color-navy-deep: var(--navy-deep);
+  --color-brand-green: var(--brand-green);
+  --color-brand-green-soft: var(--brand-green-soft);
+  --color-brand-green-ink: var(--brand-green-ink);
+  --color-charcoal: var(--charcoal);
+  --color-surface: var(--surface);
+  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* AM Consulting LLC design tokens.
+   Palette: navy #072A6C · dark navy #041A3D · green #0DAA77 · light #F4F7FB · charcoal #1F2937.
+   Contrast notes (WCAG 2.2 AA): #0DAA77 on white is 2.99:1, so it is used for fills/large text
+   only; small green text on light surfaces uses --brand-green-ink (#087A55, 5.35:1). Green buttons
+   use dark-navy labels (5.76:1). */
+:root {
+  --radius: 0.75rem;
+
+  --navy: #072a6c;
+  --navy-deep: #041a3d;
+  --brand-green: #0daa77;
+  --brand-green-soft: #7fe0be;
+  --brand-green-ink: #087a55;
+  --charcoal: #1f2937;
+  --surface: #f4f7fb;
+
+  --background: #ffffff;
+  --foreground: var(--charcoal);
+  --card: #ffffff;
+  --card-foreground: var(--charcoal);
+  --popover: #ffffff;
+  --popover-foreground: var(--charcoal);
+  --primary: var(--navy);
+  --primary-foreground: #ffffff;
+  --secondary: #eaf0f8;
+  --secondary-foreground: var(--navy);
+  --muted: #eaf0f8;
+  --muted-foreground: #5b6577;
+  --accent: var(--brand-green);
+  --accent-foreground: var(--navy-deep);
+  --destructive: #c62828;
+  --destructive-foreground: #ffffff;
+  --border: #dde4ee;
+  --input: #cfd8e5;
+  --ring: var(--brand-green);
+
+  --gradient-hero: linear-gradient(135deg, #041a3d 0%, #072a6c 60%, #0b3d8f 100%);
+  --gradient-accent: linear-gradient(135deg, var(--brand-green), var(--brand-green-soft));
+  --shadow-elevated: 0 25px 60px -25px color-mix(in oklab, var(--navy) 45%, transparent);
+  --shadow-card: 0 10px 30px -15px color-mix(in oklab, var(--navy) 30%, transparent);
+  --shadow-glow: 0 0 40px color-mix(in oklab, var(--brand-green) 40%, transparent);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--brand-green);
+    outline-offset: 2px;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Accessible electric-blue focus indicator that works on light and dark surfaces:
+   inner cyan (brand) ring + outer navy halo. Combined contrast >= 3:1 on any background. */
+@utility focus-brand {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--brand-green),
+    0 0 0 6px var(--navy);
+}
+
+@utility glass-panel {
+  background: color-mix(in oklab, white 70%, transparent);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid color-mix(in oklab, white 60%, transparent);
+}
+
+@utility glass-dark {
+  background: color-mix(in oklab, var(--navy-deep) 55%, transparent);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid color-mix(in oklab, white 12%, transparent);
+}
+
+@utility text-gradient-brand {
+  background: linear-gradient(135deg, var(--brand-green-soft), var(--brand-green));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility route-dash {
+  background-image: repeating-linear-gradient(90deg, var(--brand-green) 0 14px, transparent 14px 28px);
+}
+
+/* Rich text rendered from the CMS (already sanitized server-side). */
+@utility prose-brand {
+  & h2 { font-size: 1.5rem; font-weight: 700; color: var(--navy); margin: 2rem 0 0.75rem; }
+  & h3 { font-size: 1.2rem; font-weight: 700; color: var(--navy); margin: 1.5rem 0 0.5rem; }
+  & p { margin: 0 0 1rem; line-height: 1.7; }
+  & ul, & ol { margin: 0 0 1rem 1.25rem; line-height: 1.7; }
+  & ul { list-style: disc; }
+  & ol { list-style: decimal; }
+  & a { color: var(--navy); text-decoration: underline; text-underline-offset: 2px; }
+  & strong { font-weight: 600; }
+}
