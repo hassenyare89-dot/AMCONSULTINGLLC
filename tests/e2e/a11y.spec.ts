@@ -50,10 +50,10 @@ test.describe("motion preferences", () => {
     await expect(page.getByRole("button", { name: /Pause background/ })).toHaveCount(0);
   });
 
-  test("animated hero exposes a pause control that persists", async ({ page, isMobile }) => {
-    // Mobile uses the background video, which is not served in the test environment (falls back to image).
-    test.skip(Boolean(isMobile), "video asset unavailable locally");
+  test("animated hero exposes a pause control that persists", async ({ page }) => {
     await gotoReady(page, "/");
+    // The bundled landing video plays by default on every viewport.
+    await expect(page.locator("#home video")).toHaveCount(1);
     const pause = page.getByRole("button", { name: /Pause background/ });
     await expect(pause).toBeVisible({ timeout: 15000 });
     await pause.click();
