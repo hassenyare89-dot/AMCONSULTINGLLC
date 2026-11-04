@@ -57,14 +57,10 @@ export const DriverRegistrationSchema = z.object({
     .regex(/^(MC-?)?[0-9]*$/i, "MC number must be digits (optionally prefixed with MC)")
     .optional()
     .or(z.literal("")),
-  truckType: z.enum(REGISTRATION_TRUCK_TYPES, {
-    errorMap: () => ({ message: "Select a truck type" }),
-  }),
+  truckType: z.enum(REGISTRATION_TRUCK_TYPES, { error: "Select a truck type" }),
   truckCount: z.coerce.number().int().min(1, "At least 1 truck").max(500),
   serviceArea: z.string().trim().min(2, "Service area is required").max(200),
-  availability: z.enum(["full-time", "part-time", "on-call"], {
-    errorMap: () => ({ message: "Select availability" }),
-  }),
+  availability: z.enum(["full-time", "part-time", "on-call"], { error: "Select availability" }),
   notes: optionalText(1500),
   consentPrivacy: z.boolean().optional(),
   consentContact: z.boolean().optional(),
@@ -80,7 +76,7 @@ export const QuoteRequestSchema = z.object({
   company: optionalText(150),
   email: z.string().trim().email("Please enter a valid email").max(255),
   phone: phone.optional().or(z.literal("")),
-  serviceType: z.enum(serviceValues, { errorMap: () => ({ message: "Select a service" }) }),
+  serviceType: z.enum(serviceValues, { error: "Select a service" }),
   pickupLocation: z.string().trim().min(3, "Jobsite / pickup location is required").max(300),
   destination: optionalText(300),
   truckType: optionalText(40),
@@ -89,9 +85,7 @@ export const QuoteRequestSchema = z.object({
   estimatedDuration: optionalText(120),
   preferredDate: isoDate.optional().or(z.literal("")),
   details: optionalText(3000),
-  consentPrivacy: z.literal(true, {
-    errorMap: () => ({ message: "Please acknowledge the privacy notice" }),
-  }),
+  consentPrivacy: z.literal(true, { error: "Please acknowledge the privacy notice" }),
   ...antiSpam,
 });
 export type QuoteRequestInput = z.infer<typeof QuoteRequestSchema>;
@@ -105,9 +99,7 @@ export const AppointmentRequestSchema = z.object({
   topic: z.enum(topicValues),
   notes: optionalText(1500),
   start: z.string().datetime({ message: "Pick a time slot" }),
-  consentPrivacy: z.literal(true, {
-    errorMap: () => ({ message: "Please acknowledge the privacy notice" }),
-  }),
+  consentPrivacy: z.literal(true, { error: "Please acknowledge the privacy notice" }),
   ...antiSpam,
 });
 export type AppointmentRequestInput = z.infer<typeof AppointmentRequestSchema>;

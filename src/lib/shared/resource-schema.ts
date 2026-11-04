@@ -34,7 +34,7 @@ function fieldSchema(f: FieldDef): ZodTypeAny {
     case "number":
     case "money":
       s = z.coerce
-        .number({ invalid_type_error: `${f.label} must be a number` })
+        .number({ error: `${f.label} must be a number` })
         .min(f.min ?? -1e12, `${f.label} is too small`)
         .max(f.max ?? 1e12, `${f.label} is too large`)
         .transform((v) => (f.type === "money" ? Math.round(v * 100) / 100 : v));
