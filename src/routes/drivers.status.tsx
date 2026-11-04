@@ -3,7 +3,7 @@ import { stringParams } from "@/lib/shared/search";
 import { useEffect, useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AVAILABILITY, TRUCK_TYPES, labelFor } from "@/lib/shared/domain";
+import { AVAILABILITY, TRUCK_TYPES, labelsFor } from "@/lib/shared/domain";
 import { Field, FormError, fieldCls, postJson } from "@/components/site/forms";
 
 type Reg = {
@@ -20,6 +20,7 @@ type Reg = {
   truck_type?: string;
   truck_count?: number;
   service_area?: string;
+  current_location?: string | null;
   availability?: string;
   info_request_note?: string | null;
 };
@@ -161,9 +162,10 @@ function StatusPage() {
                   ["Company", reg.company_name || "—"],
                   ["USDOT", reg.dot_number || "—"],
                   ["MC", reg.mc_number || "—"],
-                  ["Truck", `${labelFor(TRUCK_TYPES, reg.truck_type)} × ${reg.truck_count}`],
+                  ["Dump trucks", `${reg.truck_count} × ${labelsFor(TRUCK_TYPES, reg.truck_type)}`],
+                  ["Current location", reg.current_location || "—"],
                   ["Service area", reg.service_area],
-                  ["Availability", labelFor(AVAILABILITY, reg.availability)],
+                  ["Availability", labelsFor(AVAILABILITY, reg.availability)],
                   ["Submitted", new Date(reg.created_at).toLocaleDateString()],
                 ].map(([k, v]) => (
                   <div key={k}>

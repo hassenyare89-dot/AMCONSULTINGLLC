@@ -4,8 +4,11 @@ import {
   DOCUMENT_CATEGORIES,
   DOCUMENT_ENTITY_TYPES,
   DOCUMENT_SENSITIVITY,
+  DRIVER_UPLOADS,
+  DRIVER_UPLOAD_MAX_BYTES,
 } from "@/lib/shared/domain";
 import { audit } from "../audit.server";
+import { log } from "../logger.server";
 import { actorOf, can, requirePermission, type StaffContext } from "../authz.server";
 import { check, db } from "../db.server";
 import * as storage from "../storage.server";
@@ -311,4 +314,86 @@ export async function archiveDocument(ctx: StaffContext, id: string) {
   );
   await audit(actorOf(ctx), "document.archive", "document", id, `Archived “${data.title}”`);
   return { ok: true };
+}
+
+// ---- documents attached to a public driver registration ---------------------------------
+export type PreparedUpload = {
+  label: string;
+  category: string;
+  sensitivity: "confidential" | "restricted";
+  filename: string;
+  bytes: Uint8Array;
+  mime: string;
+  ext: string;
+};
+
+/**
+ * Validates files sent with the public registration form BEFORE anything is saved:
+ * PDF / JPEG / PNG / WebP only (detected from the file contents, not the name), 10 MB each.
+ */
+export async function prepareDriverUploads(
+  files: { field: string; file: File }[],
+): Promise<PreparedUpload[]> {
+  const out: PreparedUpload[] = [];
+  for (const { field, file } of files) {
+    const spec = DRIVER_UPLOADS.find((u) => u.field === field);
+    if (!spec || file.size === 0) continue;
+    if (file.size > DRIVER_UPLOAD_MAX_BYTES)
+      throw new AppError("VALIDATION", `${spec.label}: file is too large (max 10 MB).`, {
+        field,
+      });
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const k = sniff(bytes);
+    if (!k || !["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(k.mime))
+      throw new AppError("VALIDATION", `${spec.label}: upload a PDF, JPG, PNG or WebP file.`, {
+        field,
+      });
+    out.push({
+      label: spec.label,
+      category: spec.category,
+      sensitivity: spec.sensitivity,
+      filename: safeName(file.name),
+      bytes,
+      mime: k.mime,
+      ext: k.ext,
+    });
+  }
+  return out;
+}
+
+/** Stores prepared uploads as private documents linked to the driver application. */
+export async function storeDriverUploads(
+  registrationId: string,
+  ownerName: string,
+  uploads: PreparedUpload[],
+) {
+  const saved: string[] = [];
+  for (const u of uploads) {
+    const path = `driver_application/${registrationId}/${crypto.randomUUID()}.${u.ext}`;
+    try {
+      await storage.putObject("documents", path, u.bytes);
+      check(
+        await db()
+          .from("documents")
+          .insert({
+            title: `${u.label} — ${ownerName}`.slice(0, 200),
+            category: u.category,
+            entity_type: "driver_application",
+            entity_id: registrationId,
+            sensitivity: u.sensitivity,
+            storage_path: path,
+            filename: u.filename,
+            content_type: u.mime,
+            size_bytes: u.bytes.byteLength,
+            sha256: await sha256Hex(u.bytes),
+          }),
+        "Saving document",
+      );
+      saved.push(u.label);
+    } catch (err) {
+      // The registration itself is already saved; staff can request the file again.
+      log("error", "driver upload failed", { registrationId, doc: u.label, err });
+    }
+  }
+  return saved;
 }

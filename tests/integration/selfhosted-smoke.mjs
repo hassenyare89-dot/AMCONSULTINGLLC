@@ -96,6 +96,125 @@ async function main() {
     assert.equal(rows[0].n, 1);
   });
 
+  const driverForm = (extra = {}) => {
+    const fd = new FormData();
+    const fields = {
+      ownerName: "Smoke Driver",
+      companyName: "Peach Haulers LLC",
+      email: "driver@example.com",
+      phone: "404-555-0101",
+      dotNumber: "1234567",
+      mcNumber: "",
+      truckCount: "2",
+      payloadCapacity: "15",
+      payloadUnit: "tons",
+      serviceArea: "Fulton, DeKalb, Gwinnett",
+      currentLocation: "Marietta",
+      cdlClass: "A",
+      insuranceActive: "yes",
+      travelRadius: "50",
+      notes: "",
+      attestGeorgia: "true",
+      consentPrivacy: "true",
+      ts: String(Date.now() - 10_000),
+      ...extra,
+    };
+    for (const [k, v] of Object.entries(fields)) fd.append(k, v);
+    for (const t of ["tandem", "tri-axle"]) fd.append("truckTypes", t);
+    for (const a of ["weekdays", "weekends"]) fd.append("availability", a);
+    for (const m of ["gravel", "crush-and-run"]) fd.append("materials", m);
+    return fd;
+  };
+  // Minimal valid PDF header is enough for content sniffing.
+  const pdf = new Blob([Buffer.from("%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n")], {
+    type: "application/pdf",
+  });
+
+  await step("driver registration saves all Georgia fields + private documents", async () => {
+    const fd = driverForm({ ownerName: "Smoke Driver One" });
+    fd.append("docInsurance", pdf, "insurance.pdf");
+    fd.append("docW9", pdf, "w9.pdf");
+    fd.append("docCdl", new Blob([]), ""); // empty file input is ignored
+    const r = await call("/api/public/driver", { form: fd, withCookie: false });
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(r.json.documents, ["Insurance certificate", "W-9"]);
+    const { rows } = await db.query(
+      `SELECT dot_number, truck_type, truck_count, payload_capacity, payload_unit, current_location,
+              availability, cdl_class, insurance_active, preferred_materials, travel_radius,
+              georgia_attested, georgia_attested_at IS NOT NULL AS attested_at
+         FROM public.driver_registrations WHERE id = $1`,
+      [r.json.id],
+    );
+    assert.deepEqual(
+      { ...rows[0], payload_capacity: Number(rows[0].payload_capacity) },
+      {
+        dot_number: "1234567",
+        truck_type: "tandem,tri-axle",
+        truck_count: 2,
+        payload_capacity: 15,
+        payload_unit: "tons",
+        current_location: "Marietta",
+        availability: "weekdays,weekends",
+        cdl_class: "A",
+        insurance_active: true,
+        preferred_materials: "gravel,crush-and-run",
+        travel_radius: "50",
+        georgia_attested: true,
+        attested_at: true,
+      },
+    );
+    const docs = await db.query(
+      "SELECT category, sensitivity, entity_type, content_type FROM public.documents WHERE entity_id = $1 ORDER BY category, sensitivity",
+      [r.json.id],
+    );
+    assert.deepEqual(docs.rows, [
+      {
+        category: "driver_registration",
+        sensitivity: "restricted",
+        entity_type: "driver_application",
+        content_type: "application/pdf",
+      },
+      {
+        category: "insurance",
+        sensitivity: "confidential",
+        entity_type: "driver_application",
+        content_type: "application/pdf",
+      },
+    ]);
+    const consent = await db.query(
+      "SELECT consent_type FROM public.consent_records WHERE related_id = $1 ORDER BY consent_type",
+      [r.json.id],
+    );
+    assert.deepEqual(
+      consent.rows.map((c) => c.consent_type),
+      ["georgia_operating_attestation", "privacy_notice"],
+    );
+  });
+
+  await step("driver registration rejects disguised files and saves nothing", async () => {
+    const before = (await db.query("SELECT count(*)::int AS n FROM public.driver_registrations"))
+      .rows[0].n;
+    const fd = driverForm({ ownerName: "Smoke Driver Two" });
+    fd.append(
+      "docCdl",
+      new Blob(["<html><script>alert(1)</script></html>"], { type: "application/pdf" }),
+      "cdl.pdf",
+    );
+    const r = await call("/api/public/driver", { form: fd, withCookie: false });
+    assert.equal(r.status, 400, r.text);
+    assert.equal(r.json.details?.field, "docCdl");
+    const after = (await db.query("SELECT count(*)::int AS n FROM public.driver_registrations"))
+      .rows[0].n;
+    assert.equal(after, before);
+  });
+
+  await step("driver registration requires the Georgia attestation", async () => {
+    const fd = driverForm({ attestGeorgia: "false" });
+    const r = await call("/api/public/driver", { form: fd, withCookie: false });
+    assert.equal(r.status, 400, r.text);
+    assert.match(r.json.error, /authorized to operate in Georgia/);
+  });
+
   await step("admin area requires a session", async () => {
     const r = await call("/api/auth/session", { method: "GET", withCookie: false });
     assert.equal(r.status, 401);

@@ -18,17 +18,23 @@ export class SubmitError extends Error {
 }
 
 /** POST JSON to a public endpoint; throws SubmitError with the server's safe message. */
-export async function postJson<T = Record<string, unknown>>(
-  url: string,
-  body: unknown,
-): Promise<T> {
+export function postJson<T = Record<string, unknown>>(url: string, body: unknown): Promise<T> {
+  return send<T>(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+/** POST multipart form data (fields + files); the browser sets the boundary header. */
+export function postForm<T = Record<string, unknown>>(url: string, body: FormData): Promise<T> {
+  return send<T>(url, { method: "POST", body });
+}
+
+async function send<T>(url: string, init: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    res = await fetch(url, init);
   } catch {
     throw new SubmitError("Network error. Check your connection and try again.");
   }

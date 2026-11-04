@@ -42,27 +42,80 @@ export const DRIVER_APP_PUBLIC_LABEL: Record<DriverAppStatus, string> = {
 };
 
 export const TRUCK_TYPES = opts([
-  ["tandem", "Tandem"],
+  ["single-axle", "Single axle"],
+  ["tandem", "Tandem axle"],
   ["tri-axle", "Tri-axle"],
-  ["quad-axle", "Quad-axle"],
+  ["quad-axle", "Quad axle"],
   ["side-dump", "Side dump"],
   ["super-dump", "Super dump"],
   ["end-dump", "End dump"],
   ["other", "Other"],
 ] as const);
-/** Truck types accepted by the public registration form (unchanged from the original site). */
-export const REGISTRATION_TRUCK_TYPES = [
-  "tandem",
-  "quad-axle",
-  "side-dump",
-  "super-dump",
-  "other",
+/** Dump truck types offered on the public (Georgia) registration form. */
+export const REGISTRATION_TRUCK_TYPES = ["single-axle", "tandem", "tri-axle", "quad-axle"] as const;
+
+/** Availability options on the registration form (several may be chosen). */
+export const REGISTRATION_AVAILABILITY = [
+  "available-now",
+  "today",
+  "weekdays",
+  "weekends",
+  "by-appointment",
 ] as const;
+/** All availability labels, including values used by registrations made before Nov 2026. */
 export const AVAILABILITY = opts([
+  ["available-now", "Available now"],
+  ["today", "Today"],
+  ["weekdays", "Weekdays"],
+  ["weekends", "Weekends"],
+  ["by-appointment", "By appointment"],
   ["full-time", "Full-time"],
   ["part-time", "Part-time"],
   ["on-call", "On-call / as-needed"],
 ] as const);
+
+export const PAYLOAD_UNITS = opts([
+  ["tons", "Tons"],
+  ["cubic-yards", "Cubic yards"],
+] as const);
+export const CDL_CLASSES = opts([
+  ["A", "Class A"],
+  ["B", "Class B"],
+] as const);
+export const MATERIALS = opts([
+  ["fill-dirt", "Fill dirt"],
+  ["gravel", "Gravel"],
+  ["sand", "Sand"],
+  ["crush-and-run", "Crush & run"],
+  ["asphalt", "Asphalt"],
+  ["concrete", "Concrete"],
+  ["mulch", "Mulch"],
+  ["other", "Other"],
+] as const);
+export const TRAVEL_RADIUS = opts([
+  ["25", "Up to 25 miles"],
+  ["50", "Up to 50 miles"],
+  ["100", "Up to 100 miles"],
+  ["statewide", "Anywhere in Georgia"],
+] as const);
+/** Documents a driver can attach when registering (all optional). */
+export const DRIVER_UPLOADS = [
+  { field: "docCdl", label: "CDL", category: "driver_registration", sensitivity: "restricted" },
+  {
+    field: "docInsurance",
+    label: "Insurance certificate",
+    category: "insurance",
+    sensitivity: "confidential",
+  },
+  { field: "docW9", label: "W-9", category: "driver_registration", sensitivity: "restricted" },
+  {
+    field: "docRegistration",
+    label: "Truck registration",
+    category: "vehicle_registration",
+    sensitivity: "confidential",
+  },
+] as const;
+export const DRIVER_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 
 // ---- fleet ------------------------------------------------------------------------
 export const TRUCK_AVAILABILITY = opts([
@@ -325,6 +378,16 @@ export const US_STATES = [
   "WI",
   "WY",
 ] as const;
+
+/** Labels for a comma-separated list of option values (multi-select fields). */
+export function labelsFor(options: readonly Option[], value: string | null | undefined): string {
+  if (!value) return "—";
+  return value
+    .split(",")
+    .filter(Boolean)
+    .map((v) => options.find((o) => o.value === v)?.label ?? v)
+    .join(", ");
+}
 
 export function labelFor(options: readonly Option[], value: string | null | undefined): string {
   if (!value) return "—";

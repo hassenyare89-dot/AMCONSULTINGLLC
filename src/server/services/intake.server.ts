@@ -1,8 +1,15 @@
 import { AppError } from "@/lib/shared/errors";
 import {
+  AVAILABILITY,
   DRIVER_APP_PUBLIC_LABEL,
+  DRIVER_UPLOADS,
+  MATERIALS,
+  PAYLOAD_UNITS,
   PRIVACY_POLICY_VERSION,
+  TRAVEL_RADIUS,
+  TRUCK_TYPES,
   labelFor,
+  labelsFor,
   SERVICE_TYPES,
   APPOINTMENT_TOPICS,
   PRIVACY_REQUEST_TYPES,
@@ -228,11 +235,49 @@ export async function submitContact(ctx: Ctx, body: unknown) {
 }
 
 // ---------------------------------------------------------------------------------------
-export async function submitDriverRegistration(ctx: Ctx, body: unknown) {
+/** Multi-select form fields (sent as repeated keys in multipart form data). */
+const DRIVER_MULTI_FIELDS = new Set(["truckTypes", "availability", "materials"]);
+const DRIVER_BOOL_FIELDS = new Set(["attestGeorgia", "consentPrivacy", "consentContact"]);
+
+/** Converts the multipart registration form into the shape DriverRegistrationSchema expects. */
+export function driverFormToInput(fd: FormData): {
+  body: Record<string, unknown>;
+  files: { field: string; file: File }[];
+} {
+  const body: Record<string, unknown> = {};
+  const files: { field: string; file: File }[] = [];
+  for (const key of new Set(fd.keys())) {
+    const values = fd.getAll(key);
+    if (DRIVER_UPLOADS.some((u) => u.field === key)) {
+      for (const v of values) if (v instanceof File) files.push({ field: key, file: v });
+      continue;
+    }
+    const strings = values.filter((v): v is string => typeof v === "string");
+    if (DRIVER_MULTI_FIELDS.has(key)) body[key] = strings;
+    else if (DRIVER_BOOL_FIELDS.has(key)) body[key] = strings[0] === "true";
+    else if (key === "ts") body[key] = Number(strings[0]);
+    else body[key] = strings[0];
+  }
+  if (files.length > DRIVER_UPLOADS.length)
+    throw new AppError("VALIDATION", "Too many files attached.");
+  return { body, files };
+}
+
+export async function submitDriverRegistration(
+  ctx: Ctx,
+  body: unknown,
+  files: { field: string; file: File }[] = [],
+) {
   const input = parse(DriverRegistrationSchema, body);
   if (await guard(ctx, "driver", input)) return { id: null, statusUrl: null, delivered: false };
+  // Validate attachments before saving anything, so a bad file never leaves a half-saved record.
+  const { prepareDriverUploads, storeDriverUploads } = await import("./files.server");
+  const uploads = await prepareDriverUploads(files);
   const ipHash = await hashIp(ctx.ip);
   const now = new Date().toISOString();
+  const truckTypes = input.truckTypes.join(",");
+  const availability = input.availability.join(",");
+  const materials = input.materials.join(",");
   const reg = check(
     await db()
       .from("driver_registrations")
@@ -241,12 +286,21 @@ export async function submitDriverRegistration(ctx: Ctx, body: unknown) {
         company_name: input.companyName || null,
         email: input.email.toLowerCase(),
         phone: input.phone,
-        dot_number: input.dotNumber || null,
+        dot_number: input.dotNumber,
         mc_number: input.mcNumber || null,
-        truck_type: input.truckType,
+        truck_type: truckTypes,
         truck_count: input.truckCount,
+        payload_capacity: input.payloadCapacity,
+        payload_unit: input.payloadUnit,
         service_area: input.serviceArea,
-        availability: input.availability,
+        current_location: input.currentLocation,
+        availability,
+        cdl_class: input.cdlClass || null,
+        insurance_active: input.insuranceActive ?? null,
+        preferred_materials: materials || null,
+        travel_radius: input.travelRadius || null,
+        georgia_attested: true,
+        georgia_attested_at: now,
         notes: input.notes || null,
         ip: ipHash, // hashed — raw IPs are no longer stored
         consent_privacy: input.consentPrivacy ?? null,
@@ -263,18 +317,19 @@ export async function submitDriverRegistration(ctx: Ctx, body: unknown) {
     to_status: "new",
     note: "Submitted via website",
   });
-  const consents: [string, boolean][] = [];
+  const consents: [string, boolean][] = [["georgia_operating_attestation", true]];
   if (input.consentPrivacy !== undefined) consents.push(["privacy_notice", input.consentPrivacy]);
   if (input.consentContact !== undefined) consents.push(["contact", input.consentContact]);
-  if (consents.length)
-    await recordConsent(
-      input.email,
-      "driver_registration",
-      consents,
-      reg.id,
-      ipHash,
-      ctx.request.headers.get("user-agent"),
-    );
+  await recordConsent(
+    input.email,
+    "driver_registration",
+    consents,
+    reg.id,
+    ipHash,
+    ctx.request.headers.get("user-agent"),
+  );
+  const attached = uploads.length ? await storeDriverUploads(reg.id, input.ownerName, uploads) : [];
+  const payload = `${input.payloadCapacity} ${labelFor(PAYLOAD_UNITS, input.payloadUnit).toLowerCase()}`;
 
   const statusUrl = await issueDriverStatusLink(reg.id, ctx.request);
 
@@ -292,10 +347,20 @@ export async function submitDriverRegistration(ctx: Ctx, body: unknown) {
       ["Phone", input.phone],
       ["USDOT", input.dotNumber],
       ["MC", input.mcNumber],
-      ["Truck type", input.truckType],
-      ["Trucks", input.truckCount],
-      ["Service area", input.serviceArea],
-      ["Availability", input.availability],
+      ["Dump trucks", input.truckCount],
+      ["Truck type", labelsFor(TRUCK_TYPES, truckTypes)],
+      ["Payload capacity", payload],
+      ["Current location", input.currentLocation],
+      ["Service area (GA)", input.serviceArea],
+      ["Availability", labelsFor(AVAILABILITY, availability)],
+      ["Willing to travel", labelFor(TRAVEL_RADIUS, input.travelRadius || null)],
+      ["CDL class", input.cdlClass || "—"],
+      [
+        "Insurance active",
+        input.insuranceActive == null ? "—" : input.insuranceActive ? "Yes" : "No",
+      ],
+      ["Preferred material", labelsFor(MATERIALS, materials)],
+      ["Documents attached", attached.length ? attached.join(", ") : "None"],
       ["Notes", input.notes],
     ],
     relatedType: "driver_registration",
@@ -312,13 +377,16 @@ export async function submitDriverRegistration(ctx: Ctx, body: unknown) {
       `Registration received, ${e(input.ownerName)}`,
       `<p style="color:#4B5563">Thanks for registering with AM Consulting LLC. Our team will review your submission and contact you, usually within one business day.</p>
        ${emailTable([
-         ["USDOT", input.dotNumber || "—"],
+         ["USDOT", input.dotNumber],
          ["MC", input.mcNumber || "—"],
-         ["Truck type", input.truckType],
-         ["Trucks", input.truckCount],
-         ["Service area", input.serviceArea],
+         ["Dump trucks", `${input.truckCount} × ${labelsFor(TRUCK_TYPES, truckTypes)}`],
+         ["Payload capacity", payload],
+         ["Current location", input.currentLocation],
+         ["Service area (GA)", input.serviceArea],
+         ["Availability", labelsFor(AVAILABILITY, availability)],
+         ["Documents received", attached.length ? attached.join(", ") : "None yet"],
        ])}
-       <p style="color:#4B5563;margin-top:20px"><strong>What happens next:</strong> we review your details and may ask for documents such as proof of insurance and a W-9 before any work is coordinated.</p>
+       <p style="color:#4B5563;margin-top:20px"><strong>What happens next:</strong> we review your details${attached.length < DRIVER_UPLOADS.length ? " and may ask for any missing documents (CDL, insurance certificate, W-9, truck registration)" : ""} before any loads are dispatched.</p>
        ${emailButton("Check application status", statusUrl)}
        <p style="font-size:12px;color:#6B7280">This private link expires in 90 days. Don't forward it.</p>`,
       {
@@ -332,6 +400,7 @@ export async function submitDriverRegistration(ctx: Ctx, body: unknown) {
     statusUrl,
     delivered: confirm.status === "sent",
     driverConfirmation: confirm.status === "sent",
+    documents: attached,
   };
 }
 
@@ -374,7 +443,7 @@ export async function driverStatusByToken(ctx: Ctx, token: string) {
   const reg = await db()
     .from("driver_registrations")
     .select(
-      "id,status,owner_name,company_name,dot_number,mc_number,truck_type,truck_count,service_area,availability,created_at,updated_at,info_request_note",
+      "id,status,owner_name,company_name,dot_number,mc_number,truck_type,truck_count,current_location,service_area,availability,created_at,updated_at,info_request_note",
     )
     .eq("id", t.data.registration_id)
     .maybeSingle();

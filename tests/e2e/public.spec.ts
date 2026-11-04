@@ -10,7 +10,7 @@ const PAGES: [string, RegExp][] = [
   ["/process", /four-step process/i],
   ["/quote", /hauling needs/i],
   ["/book", /Book a consultation/i],
-  ["/drivers", /Owner-Operator Registration/i],
+  ["/drivers", /Dump Truck Registration/i],
   ["/drivers/status", /Application status/i],
   ["/faq", /Frequently asked questions/i],
   ["/contact", /Contact our team/i],

@@ -2,12 +2,15 @@ import { z } from "zod";
 import {
   APPOINTMENT_TOPICS,
   PRIVACY_REQUEST_TYPES,
+  MATERIALS,
+  REGISTRATION_AVAILABILITY,
   REGISTRATION_TRUCK_TYPES,
   SERVICE_TYPES,
   US_STATES,
 } from "./domain";
 
 /** Public form contracts shared by the browser (UX validation) and server (authoritative). */
+const MATERIAL_VALUES = MATERIALS.map((m) => m.value) as [string, ...string[]];
 
 const optionalText = (max: number) => z.string().trim().max(max).optional().or(z.literal(""));
 const phone = z
@@ -37,19 +40,34 @@ export const ContactSchema = z.object({
 });
 export type ContactInput = z.infer<typeof ContactSchema>;
 
+/** Accepts one value or several (checkbox groups) and de-duplicates. */
+const multi = <T extends readonly [string, ...string[]]>(values: T, message: string) =>
+  z.preprocess(
+    (v) => [...new Set((Array.isArray(v) ? v : v == null || v === "" ? [] : [v]).map(String))],
+    z.array(z.enum(values, { error: message })).min(1, message),
+  );
+const optionalMulti = <T extends readonly [string, ...string[]]>(values: T) =>
+  z.preprocess(
+    (v) => [...new Set((Array.isArray(v) ? v : v == null || v === "" ? [] : [v]).map(String))],
+    z.array(z.enum(values)),
+  );
+const yesNo = z
+  .enum(["yes", "no", ""])
+  .optional()
+  .transform((v) => (v === "yes" ? true : v === "no" ? false : undefined));
+
+/** Georgia dump truck owner-operator registration (public form). */
 export const DriverRegistrationSchema = z.object({
-  ownerName: z.string().trim().min(1, "Owner name is required").max(100),
+  ownerName: z.string().trim().min(1, "Owner / driver name is required").max(100),
   companyName: optionalText(150),
-  email: z.string().trim().email("Invalid email").max(255),
+  email: z.string().trim().email("Enter a valid email").max(255),
   phone: phone.min(7, "Phone is required"),
-  // USDOT/MC are collected "where applicable" — not every owner-operator has their own authority.
   dotNumber: z
     .string()
     .trim()
-    .max(20)
-    .regex(/^[0-9]*$/, "USDOT number must be digits only")
-    .optional()
-    .or(z.literal("")),
+    .min(1, "USDOT number is required")
+    .max(8, "USDOT numbers are up to 8 digits")
+    .regex(/^[0-9]+$/, "USDOT number must be digits only"),
   mcNumber: z
     .string()
     .trim()
@@ -57,11 +75,28 @@ export const DriverRegistrationSchema = z.object({
     .regex(/^(MC-?)?[0-9]*$/i, "MC number must be digits (optionally prefixed with MC)")
     .optional()
     .or(z.literal("")),
-  truckType: z.enum(REGISTRATION_TRUCK_TYPES, { error: "Select a truck type" }),
-  truckCount: z.coerce.number().int().min(1, "At least 1 truck").max(500),
-  serviceArea: z.string().trim().min(2, "Service area is required").max(200),
-  availability: z.enum(["full-time", "part-time", "on-call"], { error: "Select availability" }),
+  truckCount: z.coerce
+    .number({ error: "Enter the number of dump trucks" })
+    .int("Whole trucks only")
+    .min(1, "At least 1 truck")
+    .max(500),
+  truckTypes: multi(REGISTRATION_TRUCK_TYPES, "Select at least one truck type"),
+  payloadCapacity: z.coerce
+    .number({ error: "Enter the payload capacity" })
+    .positive("Enter the payload capacity")
+    .max(200, "That looks too large — enter capacity per truck"),
+  payloadUnit: z.enum(["tons", "cubic-yards"], { error: "Choose tons or cubic yards" }),
+  serviceArea: z.string().trim().min(2, "Enter the Georgia counties or area you serve").max(300),
+  currentLocation: z.string().trim().min(2, "Enter the city where the truck is now").max(120),
+  availability: multi(REGISTRATION_AVAILABILITY, "Select your availability"),
+  cdlClass: z.enum(["A", "B", ""]).optional(),
+  insuranceActive: yesNo,
+  materials: optionalMulti(MATERIAL_VALUES),
+  travelRadius: z.enum(["25", "50", "100", "statewide", ""]).optional(),
   notes: optionalText(1500),
+  attestGeorgia: z.literal(true, {
+    error: "Please confirm your truck is insured, registered and authorized to operate in Georgia",
+  }),
   consentPrivacy: z.boolean().optional(),
   consentContact: z.boolean().optional(),
   ...antiSpam,

@@ -1,18 +1,31 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ClipboardCheck, Loader2, MapPinned, Truck } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { AVAILABILITY, TRUCK_TYPES, REGISTRATION_TRUCK_TYPES } from "@/lib/shared/domain";
+import {
+  AVAILABILITY,
+  CDL_CLASSES,
+  DRIVER_UPLOADS,
+  DRIVER_UPLOAD_MAX_BYTES,
+  MATERIALS,
+  PAYLOAD_UNITS,
+  REGISTRATION_AVAILABILITY,
+  REGISTRATION_TRUCK_TYPES,
+  TRAVEL_RADIUS,
+  TRUCK_TYPES,
+} from "@/lib/shared/domain";
 import { DriverRegistrationSchema } from "@/lib/shared/validation";
+import { cn } from "@/lib/utils";
 import {
   ConsentCheckbox,
   Field,
   FormError,
   Honeypot,
+  SubmitError,
   Turnstile,
   fieldCls,
   focusFirstError,
-  postJson,
+  postForm,
   useSpamGuard,
   zodErrors,
   type FieldErrors,
@@ -20,9 +33,13 @@ import {
 import { SectionHeader } from "./Services";
 
 export const DRIVER_STORAGE_KEY = "am_driver_registration";
-const truckOptions = TRUCK_TYPES.filter((t) =>
-  (REGISTRATION_TRUCK_TYPES as readonly string[]).includes(t.value),
-);
+
+type Opt = { value: string; label: string };
+const pick = (opts: readonly Opt[], values: readonly string[]) =>
+  values.map((v) => opts.find((o) => o.value === v)!);
+const truckOptions = pick(TRUCK_TYPES, REGISTRATION_TRUCK_TYPES);
+const availabilityOptions = pick(AVAILABILITY, REGISTRATION_AVAILABILITY);
+const ACCEPT = ".pdf,application/pdf,image/jpeg,image/png,image/webp";
 
 export function DriverRegistration() {
   const navigate = useNavigate();
@@ -39,6 +56,10 @@ export function DriverRegistration() {
     const fd = new FormData(form);
     const data = {
       ...Object.fromEntries(fd),
+      truckTypes: fd.getAll("truckTypes"),
+      availability: fd.getAll("availability"),
+      materials: fd.getAll("materials"),
+      attestGeorgia: fd.get("attestGeorgia") === "true",
       consentPrivacy: fd.get("consentPrivacy") === "true",
       consentContact: fd.get("consentContact") === "true",
       ts: ts.current,
@@ -47,6 +68,11 @@ export function DriverRegistration() {
     const parsed = DriverRegistrationSchema.safeParse(data);
     const errs: FieldErrors = parsed.success ? {} : zodErrors(parsed.error.issues);
     if (!data.consentPrivacy) errs.consentPrivacy = "Please acknowledge the privacy notice";
+    for (const u of DRIVER_UPLOADS) {
+      const f = fd.get(u.field);
+      if (f instanceof File && f.size > DRIVER_UPLOAD_MAX_BYTES)
+        errs[u.field] = `${u.label}: file is too large (max 10 MB).`;
+    }
     if (Object.keys(errs).length) {
       setErrors(errs);
       setFormError("Please fix the highlighted fields.");
@@ -57,10 +83,13 @@ export function DriverRegistration() {
     setFormError(null);
     setSubmitting(true);
     try {
-      const json = await postJson<{ id?: string | null; statusUrl?: string | null }>(
-        "/api/public/driver",
-        parsed.data,
-      );
+      fd.set("ts", String(ts.current));
+      if (turnstileToken) fd.set("turnstileToken", turnstileToken);
+      const json = await postForm<{
+        id?: string | null;
+        statusUrl?: string | null;
+        documents?: string[];
+      }>("/api/public/driver", fd);
       form.reset();
       reset();
       try {
@@ -73,10 +102,13 @@ export function DriverRegistration() {
             email: d.email,
             dotNumber: d.dotNumber,
             mcNumber: d.mcNumber,
-            truckType: d.truckType,
+            truckType: d.truckTypes.join(","),
             truckCount: d.truckCount,
+            payload: `${d.payloadCapacity} ${d.payloadUnit === "tons" ? "tons" : "cubic yards"}`,
+            currentLocation: d.currentLocation,
             serviceArea: d.serviceArea,
-            availability: d.availability,
+            availability: d.availability.join(","),
+            documents: json.documents ?? [],
             id: json.id ?? null,
             statusUrl: json.statusUrl ?? null,
           }),
@@ -86,6 +118,11 @@ export function DriverRegistration() {
       }
       navigate({ to: "/drivers/confirmation" });
     } catch (err) {
+      const field = err instanceof SubmitError ? err.field : undefined;
+      if (field) {
+        setErrors({ [field]: (err as Error).message });
+        focusFirstError({ [field]: "" });
+      }
       setFormError((err as Error).message);
     } finally {
       setSubmitting(false);
@@ -98,131 +135,271 @@ export function DriverRegistration() {
         <SectionHeader
           id="driver-title"
           as="h1"
-          eyebrow="Drive with us"
-          title="Owner-Operator Registration"
-          subtitle="Register your dump truck or fleet with our dispatch team. We review every registration and will contact you about coordination in your service area."
+          eyebrow="Georgia dump truck owner-operators"
+          title="Dump Truck Registration"
+          subtitle="Register your dump truck or fleet to receive loads in Georgia. We ask only what our dispatchers need to match you with work: where your truck is, what it can haul, and when you're available."
         />
         <ul className="mb-10 mt-10 grid gap-4 md:grid-cols-3">
           <Perk
             icon={<MapPinned className="h-5 w-5" />}
-            title="Your service area"
-            body="Tell us where you prefer to work and when you're available."
-          />
-          <Perk
-            icon={<ClipboardCheck className="h-5 w-5" />}
-            title="Straightforward review"
-            body="We verify details such as authority and insurance before coordinating work."
+            title="Georgia loads"
+            body="Tell us your counties, current location and how far you'll travel."
           />
           <Perk
             icon={<Truck className="h-5 w-5" />}
-            title="All dump truck types"
-            body="Tandems, quads, side dumps, super dumps and more."
+            title="Single axle to quad axle"
+            body="Register one truck or a whole fleet, with payload capacity."
+          />
+          <Perk
+            icon={<ClipboardCheck className="h-5 w-5" />}
+            title="Quick review"
+            body="Attach your CDL, insurance, W-9 and registration now or later."
           />
         </ul>
         <form
           onSubmit={onSubmit}
           noValidate
           aria-busy={submitting}
-          className="relative grid gap-5 rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] sm:p-8 md:grid-cols-2"
+          encType="multipart/form-data"
+          className="relative space-y-8 rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] sm:p-8"
         >
           <Honeypot />
-          <p className="text-xs text-muted-foreground md:col-span-2">
-            Fields marked * are required. We only ask for what we need to review your registration.
+          <p className="text-xs text-muted-foreground">
+            Fields marked * are required. This form is for dump trucks operating in Georgia.
           </p>
-          <Field label="Owner / driver name" name="ownerName" required error={errors.ownerName}>
-            {(p) => <input {...p} autoComplete="name" maxLength={100} className={fieldCls} />}
-          </Field>
-          <Field label="Company name" name="companyName" error={errors.companyName}>
-            {(p) => (
-              <input {...p} autoComplete="organization" maxLength={150} className={fieldCls} />
-            )}
-          </Field>
-          <Field label="Email" name="email" required error={errors.email}>
-            {(p) => (
-              <input
-                {...p}
-                type="email"
-                autoComplete="email"
-                maxLength={255}
-                className={fieldCls}
-              />
-            )}
-          </Field>
-          <Field label="Phone" name="phone" required error={errors.phone}>
-            {(p) => (
-              <input {...p} type="tel" autoComplete="tel" maxLength={30} className={fieldCls} />
-            )}
-          </Field>
-          <Field
-            label="USDOT number"
-            name="dotNumber"
-            error={errors.dotNumber}
-            help="Where applicable — digits only."
+
+          <FormSection title="Owner & contact">
+            <Field label="Owner / driver name" name="ownerName" required error={errors.ownerName}>
+              {(p) => <input {...p} autoComplete="name" maxLength={100} className={fieldCls} />}
+            </Field>
+            <Field label="Company name" name="companyName" error={errors.companyName}>
+              {(p) => (
+                <input {...p} autoComplete="organization" maxLength={150} className={fieldCls} />
+              )}
+            </Field>
+            <Field label="Email" name="email" required error={errors.email}>
+              {(p) => (
+                <input
+                  {...p}
+                  type="email"
+                  autoComplete="email"
+                  maxLength={255}
+                  className={fieldCls}
+                />
+              )}
+            </Field>
+            <Field label="Phone" name="phone" required error={errors.phone}>
+              {(p) => (
+                <input {...p} type="tel" autoComplete="tel" maxLength={30} className={fieldCls} />
+              )}
+            </Field>
+            <Field
+              label="USDOT number"
+              name="dotNumber"
+              required
+              error={errors.dotNumber}
+              help="Digits only."
+            >
+              {(p) => <input {...p} inputMode="numeric" maxLength={8} className={fieldCls} />}
+            </Field>
+            <Field label="MC number" name="mcNumber" error={errors.mcNumber} help="If applicable.">
+              {(p) => <input {...p} maxLength={20} className={fieldCls} />}
+            </Field>
+          </FormSection>
+
+          <FormSection title="Trucks">
+            <Field
+              label="Number of dump trucks"
+              name="truckCount"
+              required
+              error={errors.truckCount}
+            >
+              {(p) => (
+                <input
+                  {...p}
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={500}
+                  defaultValue={1}
+                  className={fieldCls}
+                />
+              )}
+            </Field>
+            <div className="space-y-1.5">
+              <span className="block text-sm font-medium text-charcoal" id="payload-label">
+                Payload capacity
+                <span className="text-destructive" aria-hidden>
+                  {" "}
+                  *
+                </span>
+              </span>
+              <div className="flex gap-2">
+                <input
+                  id="fld-payloadCapacity"
+                  name="payloadCapacity"
+                  type="number"
+                  inputMode="decimal"
+                  min={0.5}
+                  max={200}
+                  step="0.5"
+                  required
+                  aria-labelledby="payload-label"
+                  aria-invalid={errors.payloadCapacity ? true : undefined}
+                  aria-describedby={
+                    errors.payloadCapacity ? "fld-payloadCapacity-err" : "payload-help"
+                  }
+                  className={cn(fieldCls, "min-w-0 flex-1")}
+                />
+                <select
+                  id="fld-payloadUnit"
+                  name="payloadUnit"
+                  aria-label="Payload unit"
+                  defaultValue="tons"
+                  className={cn(fieldCls, "w-40")}
+                >
+                  {PAYLOAD_UNITS.map((u) => (
+                    <option key={u.value} value={u.value}>
+                      {u.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p id="payload-help" className="text-xs text-muted-foreground">
+                Per truck, e.g. 15 tons or 14 cubic yards.
+              </p>
+              {(errors.payloadCapacity || errors.payloadUnit) && (
+                <p id="fld-payloadCapacity-err" className="text-xs font-medium text-destructive">
+                  {errors.payloadCapacity || errors.payloadUnit}
+                </p>
+              )}
+            </div>
+            <CheckGroup
+              legend="Truck type"
+              name="truckTypes"
+              required
+              options={truckOptions}
+              error={errors.truckTypes}
+              help="Select all that apply."
+              className="md:col-span-2"
+            />
+          </FormSection>
+
+          <FormSection title="Location & availability">
+            <Field
+              label="Counties or service area in Georgia"
+              name="serviceArea"
+              required
+              error={errors.serviceArea}
+              help="e.g. Fulton, DeKalb, Gwinnett, Cobb — or Metro Atlanta"
+            >
+              {(p) => <input {...p} maxLength={300} className={fieldCls} />}
+            </Field>
+            <Field
+              label="Current truck location (city)"
+              name="currentLocation"
+              required
+              error={errors.currentLocation}
+              help="Where the truck is parked or working now, e.g. Marietta"
+            >
+              {(p) => (
+                <input {...p} maxLength={120} autoComplete="address-level2" className={fieldCls} />
+              )}
+            </Field>
+            <CheckGroup
+              legend="Availability"
+              name="availability"
+              required
+              options={availabilityOptions}
+              error={errors.availability}
+              help="Select all that apply."
+            />
+            <Field label="Willing to travel" name="travelRadius" error={errors.travelRadius}>
+              {(p) => (
+                <select {...p} className={fieldCls} defaultValue="">
+                  <option value="">Select…</option>
+                  {TRAVEL_RADIUS.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </Field>
+          </FormSection>
+
+          <FormSection
+            title="Driver & insurance"
+            note="Recommended — helps us dispatch you sooner."
           >
-            {(p) => <input {...p} inputMode="numeric" maxLength={20} className={fieldCls} />}
-          </Field>
-          <Field label="MC number" name="mcNumber" error={errors.mcNumber} help="Where applicable.">
-            {(p) => <input {...p} maxLength={20} className={fieldCls} />}
-          </Field>
-          <Field label="Truck type" name="truckType" required error={errors.truckType}>
-            {(p) => (
-              <select {...p} className={fieldCls} defaultValue="">
-                <option value="" disabled>
-                  Select…
-                </option>
-                {truckOptions.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            )}
-          </Field>
-          <Field label="Number of trucks" name="truckCount" required error={errors.truckCount}>
-            {(p) => (
-              <input {...p} type="number" min={1} max={500} defaultValue={1} className={fieldCls} />
-            )}
-          </Field>
-          <Field
-            label="Service area"
-            name="serviceArea"
-            required
-            error={errors.serviceArea}
-            help="e.g. Metro Atlanta, Gwinnett, I-85 corridor"
+            <RadioGroup
+              legend="CDL class"
+              name="cdlClass"
+              options={CDL_CLASSES}
+              error={errors.cdlClass}
+            />
+            <RadioGroup
+              legend="Insurance active?"
+              name="insuranceActive"
+              options={[
+                { value: "yes", label: "Yes" },
+                { value: "no", label: "No" },
+              ]}
+              error={errors.insuranceActive}
+            />
+            <CheckGroup
+              legend="Preferred material"
+              name="materials"
+              options={MATERIALS}
+              error={errors.materials}
+              help="Select all that apply."
+              className="md:col-span-2"
+              columns={4}
+            />
+          </FormSection>
+
+          <FormSection
+            title="Documents"
+            note="Optional now — you can also send them later. PDF, JPG, PNG or WebP, up to 10 MB each. Files are stored privately and only seen by our review team."
           >
-            {(p) => <input {...p} maxLength={200} className={fieldCls} />}
-          </Field>
-          <Field
-            label="General availability"
-            name="availability"
-            required
-            error={errors.availability}
-          >
-            {(p) => (
-              <select {...p} className={fieldCls} defaultValue="">
-                <option value="" disabled>
-                  Select…
-                </option>
-                {AVAILABILITY.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            )}
-          </Field>
-          <Field label="Notes" name="notes" error={errors.notes} className="md:col-span-2">
-            {(p) => (
-              <textarea
-                {...p}
-                rows={4}
-                maxLength={1500}
-                className={fieldCls}
-                placeholder="Equipment details, preferred job types, anything else we should know."
-              />
-            )}
-          </Field>
-          <div className="space-y-3 md:col-span-2">
+            {DRIVER_UPLOADS.map((u) => (
+              <Field key={u.field} label={u.label} name={u.field} error={errors[u.field]}>
+                {(p) => (
+                  <input
+                    {...p}
+                    type="file"
+                    accept={ACCEPT}
+                    className={cn(
+                      fieldCls,
+                      "file:mr-3 file:rounded file:border-0 file:bg-secondary file:px-3 file:py-1 file:text-sm file:font-medium file:text-navy",
+                    )}
+                  />
+                )}
+              </Field>
+            ))}
+          </FormSection>
+
+          <FormSection title="Notes">
+            <Field
+              label="Additional comments"
+              name="notes"
+              error={errors.notes}
+              className="md:col-span-2"
+            >
+              {(p) => (
+                <textarea
+                  {...p}
+                  rows={4}
+                  maxLength={1500}
+                  className={fieldCls}
+                  placeholder="Equipment details, preferred job types, anything else we should know."
+                />
+              )}
+            </Field>
+          </FormSection>
+
+          <div className="space-y-3">
+            <AttestCheckbox error={errors.attestGeorgia} />
             <ConsentCheckbox error={errors.consentPrivacy}>
               I have read the{" "}
               <Link to="/privacy" target="_blank" className="font-medium text-navy underline">
@@ -235,10 +412,8 @@ export function DriverRegistration() {
               won't send marketing texts.)
             </ConsentCheckbox>
           </div>
-          <div className="md:col-span-2">
-            <Turnstile onToken={setTurnstileToken} />
-          </div>
-          <div className="space-y-3 md:col-span-2">
+          <Turnstile onToken={setTurnstileToken} />
+          <div className="space-y-3">
             <FormError message={formError} />
             <Button
               type="submit"
@@ -260,6 +435,198 @@ export function DriverRegistration() {
         </form>
       </div>
     </section>
+  );
+}
+
+function FormSection({
+  title,
+  note,
+  children,
+}: {
+  title: string;
+  note?: string;
+  children: ReactNode;
+}) {
+  return (
+    <fieldset className="grid gap-5 border-t border-border pt-6 first-of-type:border-t-0 first-of-type:pt-0 md:grid-cols-2">
+      <legend className="sr-only">{title}</legend>
+      <div className="md:col-span-2" aria-hidden="true">
+        <h2 className="text-base font-semibold text-navy">{title}</h2>
+        {note && <p className="mt-1 text-xs text-muted-foreground">{note}</p>}
+      </div>
+      {children}
+    </fieldset>
+  );
+}
+
+/** Checkbox group. The first box carries id fld-<name> so error focus lands on the group. */
+function CheckGroup({
+  legend,
+  name,
+  options,
+  required,
+  error,
+  help,
+  className,
+  columns = 2,
+}: {
+  legend: string;
+  name: string;
+  options: readonly Opt[];
+  required?: boolean;
+  error?: string;
+  help?: string;
+  className?: string;
+  columns?: 2 | 4;
+}) {
+  return (
+    <ChoiceGroup
+      legend={legend}
+      name={name}
+      required={required}
+      error={error}
+      help={help}
+      className={className}
+    >
+      <div
+        className={cn(
+          "grid grid-cols-2 gap-2",
+          columns === 4 ? "sm:grid-cols-4" : "sm:grid-cols-3 md:grid-cols-2",
+        )}
+      >
+        {options.map((o, i) => (
+          <label
+            key={o.value}
+            className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-input bg-white px-3 py-2 text-sm text-charcoal has-[:checked]:border-navy has-[:checked]:bg-navy/5"
+          >
+            <input
+              type="checkbox"
+              name={name}
+              value={o.value}
+              id={i === 0 ? `fld-${name}` : undefined}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? `fld-${name}-err` : undefined}
+              className="h-4 w-4 accent-[var(--navy)]"
+            />
+            {o.label}
+          </label>
+        ))}
+      </div>
+    </ChoiceGroup>
+  );
+}
+
+function RadioGroup({
+  legend,
+  name,
+  options,
+  error,
+}: {
+  legend: string;
+  name: string;
+  options: readonly Opt[];
+  error?: string;
+}) {
+  return (
+    <ChoiceGroup legend={legend} name={name} error={error}>
+      <div className="flex flex-wrap gap-2">
+        {options.map((o, i) => (
+          <label
+            key={o.value}
+            className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-input bg-white px-4 py-2 text-sm text-charcoal has-[:checked]:border-navy has-[:checked]:bg-navy/5"
+          >
+            <input
+              type="radio"
+              name={name}
+              value={o.value}
+              id={i === 0 ? `fld-${name}` : undefined}
+              className="h-4 w-4 accent-[var(--navy)]"
+            />
+            {o.label}
+          </label>
+        ))}
+      </div>
+    </ChoiceGroup>
+  );
+}
+
+function ChoiceGroup({
+  legend,
+  name,
+  required,
+  error,
+  help,
+  className,
+  children,
+}: {
+  legend: string;
+  name: string;
+  required?: boolean;
+  error?: string;
+  help?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <fieldset
+      className={cn("space-y-1.5", className)}
+      aria-describedby={help ? `fld-${name}-help` : undefined}
+    >
+      <legend className="mb-1.5 block text-sm font-medium text-charcoal">
+        {legend}
+        {required ? (
+          <span className="text-destructive" aria-hidden>
+            {" "}
+            *
+          </span>
+        ) : (
+          <span className="font-normal text-muted-foreground"> (optional)</span>
+        )}
+      </legend>
+      {help && (
+        <p id={`fld-${name}-help`} className="text-xs text-muted-foreground">
+          {help}
+        </p>
+      )}
+      {children}
+      {error && (
+        <p id={`fld-${name}-err`} className="text-xs font-medium text-destructive">
+          {error}
+        </p>
+      )}
+    </fieldset>
+  );
+}
+
+function AttestCheckbox({ error }: { error?: string }) {
+  return (
+    <div className="rounded-lg border border-navy/20 bg-navy/5 p-4">
+      <div className="flex items-start gap-3">
+        <input
+          id="fld-attestGeorgia"
+          name="attestGeorgia"
+          type="checkbox"
+          value="true"
+          required
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "fld-attestGeorgia-err" : undefined}
+          className="mt-1 h-4 w-4 rounded border-input accent-[var(--navy)]"
+        />
+        <label htmlFor="fld-attestGeorgia" className="text-sm font-medium text-charcoal">
+          I confirm that my truck is insured, properly registered, and authorized to operate in the
+          State of Georgia.
+          <span className="text-destructive" aria-hidden>
+            {" "}
+            *
+          </span>
+        </label>
+      </div>
+      {error && (
+        <p id="fld-attestGeorgia-err" className="mt-1 text-xs font-medium text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }
 
