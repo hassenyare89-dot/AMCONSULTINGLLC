@@ -1,18 +1,25 @@
 # Test Report
 
-Run on 2026-11-03 in the development container (Node 22, Postgres 16, Chromium via Playwright 1.63).
+Run on 2026-11-04 in the development container (Node 22, Postgres 16, Docker 29, Chromium via Playwright 1.63),
+after replacing Supabase with self-hosted PostgreSQL.
 Results below are the **actual** final results; nothing was run against production.
 
 | Suite | Command | Result |
 |---|---|---|
-| Production build | `bun run build` | ✅ succeeds (Cloudflare Workers bundle) |
+| Production build | `bun run build` | ✅ succeeds (standalone Node server, `node-server` preset) |
 | Strict TypeScript | `bun run typecheck` | ✅ 0 errors |
 | ESLint (errors) | `npx eslint src tests --quiet` | ✅ 0 errors (`no-explicit-any` is a warning in admin/server code — tracked debt) |
-| Unit + authorization | `bun run test` | ✅ **126 / 126** passed (8 files) |
-| Database migrations + RLS | `bun run test:db` | ✅ all assertions passed |
+| Unit + authorization | `bun run test` | ✅ **142 / 142** passed (9 files) |
+| Database migrations + RLS | `bun run test:db` | ✅ all assertions passed (app role is a non-superuser owner, as in production) |
+| Self-hosted integration | `./scripts/test-integration.sh` | ✅ **21 / 21** checks (built server + Postgres: form → DB, create-admin, invite, sign-in, TOTP, uploads, signed links, sign-out, deactivation; one check in a real browser) |
+| Docker Compose stack | manual run (`docker compose up`) | ✅ runtime image, Postgres init, migrations, Caddy HTTPS + redirect, `/api/cron` blocked publicly, scheduler backup, `create-admin`, maintenance job, backup → restore round-trip |
 | E2E + accessibility | `bun run test:e2e` | ✅ **115 passed, 0 failed, 3 skipped** (desktop 1440×900 + Pixel 7) |
 
 ## What the suites cover
+
+**Self-hosting units (Vitest, `selfhosted.test.ts`)** — filter parser and injection rejection, generated SQL for
+select/or/not-in/upsert/update, refusal of unfiltered UPDATE/DELETE, RFC 6238 TOTP vectors + replay window,
+scrypt password hashing, AES-GCM tamper detection, storage path traversal, signed-link tampering/expiry, cookie flags.
 
 **Unit / authorization (Vitest)**
 * RBAC matrix: role → permission mapping, viewer read-only, dispatcher/content-editor limits, protected-role grants.
@@ -50,14 +57,19 @@ redirects to sign-in with no sign-up offered.
 Skipped by design: desktop-only navigation test on mobile, mobile-menu test on desktop, and the pause-control
 test on mobile (mobile uses the background video, which isn't served in the test environment).
 
-Issues found and fixed by these tests included the `user_roles` grant gap, a WCAG 2.5.3 label-in-name failure in
+Issues found and fixed during the self-hosting work: an `infinity` ban timestamp not recognised as banned
+(bans are now evaluated in SQL), and an unread 401 response body keeping the sign-in page's request open.
+
+Issues found and fixed by earlier tests included the `user_roles` grant gap, a WCAG 2.5.3 label-in-name failure in
 the logo fallback, a missing 404 for unknown service slugs, and HTTPS-only CSP directives breaking HTTP origins.
 
 ## Not tested here (and why)
 
 | Area | Reason | How to verify |
 |---|---|---|
-| Sign-in, MFA enrolment, AMCMS screens with data, record writes, storage uploads | No reachable Supabase instance (cloud project not connected; local Supabase container images blocked) | Staging smoke test, docs/07 |
+| Most AMCMS screens clicked through with data | Integration test covers auth, uploads and one form; other screens rely on unit/authorization tests | Staging smoke test, docs/07 |
+| The Docker image's *build* stage | Build containers in this sandbox have no package-registry access; the runtime stage was built from locally built output | First `docker compose up --build` on the Droplet (CI also runs `docker build`) |
+| A real Droplet + Let's Encrypt certificate | No server/domain available here | docs/12 |
 | Email delivery | No Resend key | Send a test contact form after configuring |
 | Lighthouse / Core Web Vitals | Only a dev server was available | Run Lighthouse on the deployed site |
 | Screen-reader and manual keyboard audit | Automated scans can't cover everything | NVDA + VoiceOver walkthrough |

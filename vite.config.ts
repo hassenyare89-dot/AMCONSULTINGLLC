@@ -12,4 +12,6 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Self-hosted: build a standalone Node server (.output/server/index.mjs) for Docker.
+  nitro: { preset: "node-server" },
 });

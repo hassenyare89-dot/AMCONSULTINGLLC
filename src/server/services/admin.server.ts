@@ -5,7 +5,7 @@ import { sanitizeSearchTerm } from "@/lib/shared/resource-schema";
 import { audit } from "../audit.server";
 import { actorOf, can, requirePermission, type StaffContext } from "../authz.server";
 import { check, db } from "../db.server";
-import { siteUrl } from "../email.server";
+import { emailButton, emailLayout, sendEmail } from "../email.server";
 import { notifyStaff } from "../notify.server";
 import { SETTINGS_DEFAULTS, getSetting, type SettingsShape } from "../settings.server";
 import { publishDueSections } from "./cms.server";
@@ -155,10 +155,12 @@ export async function listNotifications(ctx: StaffContext, input: unknown) {
       ).data ?? [])
     : [];
   const readSet = new Set(reads.map((r: { notification_id: string }) => r.notification_id));
-  const items = (data ?? []).map((n: Record<string, unknown>) => ({
-    ...n,
-    read: readSet.has(n.id as string) || Boolean(n.user_id && n.read_at),
-  }));
+  const items: (Record<string, unknown> & { read: boolean })[] = (data ?? []).map(
+    (n: Record<string, unknown>) => ({
+      ...n,
+      read: readSet.has(n.id as string) || Boolean(n.user_id && n.read_at),
+    }),
+  );
   return {
     items: p.unreadOnly ? items.filter((i) => !i.read) : items,
     unread: items.filter((i) => !i.read).length,
@@ -439,16 +441,9 @@ export async function inviteStaff(ctx: StaffContext, input: unknown, request?: R
     if (!canManageRole(ctx.roles, r))
       throw new AppError("FORBIDDEN", `You can't grant the ${r} role.`);
   const email = p.email.toLowerCase();
-  const invited = await db().auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${siteUrl(request)}/auth/update-password`,
-  });
-  let userId = invited.data?.user?.id;
-  if (invited.error) {
-    // Already registered: look up the existing user rather than failing.
-    const list = await db().auth.admin.listUsers({ page: 1, perPage: 1000 });
-    userId = list.data?.users.find((u) => u.email?.toLowerCase() === email)?.id;
-    if (!userId) throw new AppError("INTERNAL", "Could not send the invitation.");
-  }
+  const { createInvite } = await import("../auth/service.server");
+  const invite = await createInvite(email, request);
+  const userId = invite.userId;
   await db()
     .from("staff_profiles")
     .upsert(
@@ -479,7 +474,22 @@ export async function inviteStaff(ctx: StaffContext, input: unknown, request?: R
     `Invited ${email} with roles ${roles.join(", ")}`,
     { roles },
   );
-  return { userId, invited: !invited.error };
+  const sent = await sendEmail({
+    to: email,
+    subject: "You've been invited to AMCMS",
+    template: "auth.invite",
+    html: emailLayout(
+      "Your AMCMS account",
+      `<p style="color:#4B5563">You've been given access to the AM Consulting management system. Choose a password to activate your account. The link expires in 7 days.</p>${emailButton("Set your password", invite.link)}`,
+    ),
+  });
+  // If email isn't configured, hand the one-time link to the inviting admin to deliver securely.
+  return {
+    userId,
+    invited: invite.created,
+    emailed: sent.status === "sent",
+    inviteLink: sent.status === "sent" ? undefined : invite.link,
+  };
 }
 
 export async function setStaffRoles(ctx: StaffContext, input: unknown) {
@@ -530,7 +540,7 @@ export async function setStaffActive(ctx: StaffContext, input: unknown) {
   const p = z.object({ userId: uuid, active: z.boolean() }).parse(input);
   if (p.userId === ctx.userId)
     throw new AppError("FORBIDDEN", "You can't deactivate your own account.");
-  const targetRoles = (
+  const targetRoles: string[] = (
     (await db().from("user_roles").select("role").eq("user_id", p.userId)).data ?? []
   ).map((r: { role: string }) => r.role);
   if (
@@ -538,15 +548,16 @@ export async function setStaffActive(ctx: StaffContext, input: unknown) {
     !ctx.roles.includes("super_admin")
   )
     throw new AppError("FORBIDDEN", "Only a super admin can change administrator accounts.");
-  const { data: authUser } = await db().auth.admin.getUserById(p.userId);
+  const { authUserEmail, setBanned } = await import("../auth/service.server");
+  const authEmail = await authUserEmail(p.userId);
   await db()
     .from("staff_profiles")
     .upsert(
-      { user_id: p.userId, email: authUser?.user?.email ?? "unknown", active: p.active },
+      { user_id: p.userId, email: authEmail ?? "unknown", active: p.active },
       { onConflict: "user_id" },
     );
-  // Ban/unban at the auth layer so existing refresh tokens stop working.
-  await db().auth.admin.updateUserById(p.userId, { ban_duration: p.active ? "none" : "876000h" });
+  // Ban/unban at the auth layer; deactivation also ends every open session immediately.
+  await setBanned(p.userId, !p.active);
   await audit(
     actorOf(ctx),
     p.active ? "user.reactivate" : "user.deactivate",
@@ -554,6 +565,18 @@ export async function setStaffActive(ctx: StaffContext, input: unknown) {
     p.userId,
     `${p.active ? "Reactivated" : "Deactivated"} staff account`,
   );
+  return { ok: true };
+}
+
+/** Clears a staff member's authenticator (lost device) so they re-enrol at next sign-in. */
+export async function resetStaffMfa(ctx: StaffContext, input: unknown) {
+  requirePermission(ctx, "users.manage");
+  const p = z.object({ userId: uuid }).parse(input);
+  if (!ctx.roles.includes("super_admin"))
+    throw new AppError("FORBIDDEN", "Only a super admin can reset two-step verification.");
+  const { resetMfa } = await import("../auth/service.server");
+  await resetMfa(p.userId);
+  await audit(actorOf(ctx), "user.mfa_reset", "user", p.userId, "Reset two-step verification");
   return { ok: true };
 }
 
@@ -852,5 +875,7 @@ export async function runMaintenance() {
     .update({ status: "expired" })
     .in("status", ["sent", "viewed"])
     .lt("valid_until", today);
+  const { pruneAuthData } = await import("../auth/service.server");
+  await pruneAuthData();
   return { published, reminders: reminders.length, privacyDue: overdue.length };
 }

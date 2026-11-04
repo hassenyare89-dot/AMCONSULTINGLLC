@@ -177,11 +177,31 @@ function RoleChecks({
 
 function InviteForm({ roles, onDone }: { roles: Role[]; onDone: () => void }) {
   const [f, setF] = useState({ email: "", fullName: "", title: "", roles: [] as string[] });
-  const invite = useRpcMutation("users.invite", {
+  const [link, setLink] = useState<string | null>(null);
+  const invite = useRpcMutation<{ emailed: boolean; inviteLink?: string }>("users.invite", {
     invalidate: ["users."],
-    success: "Invitation sent",
-    onSuccess: onDone,
+    success: (r) => (r.emailed ? "Invitation sent" : "Account created — share the invite link"),
+    onSuccess: (r) => (r.inviteLink ? setLink(r.inviteLink) : onDone()),
   });
+  if (link)
+    return (
+      <div className="space-y-4">
+        <SheetHeader>
+          <SheetTitle>Share the invite link</SheetTitle>
+          <SheetDescription>
+            Email isn't configured, so no invitation was sent. Give this one-time link to the staff
+            member through a trusted channel. It expires in 7 days.
+          </SheetDescription>
+        </SheetHeader>
+        <code className="block break-all rounded bg-secondary p-3 font-mono text-xs">{link}</code>
+        <Button onClick={() => navigator.clipboard?.writeText(link)} variant="outline">
+          Copy link
+        </Button>
+        <Button onClick={onDone} className="ml-2">
+          Done
+        </Button>
+      </div>
+    );
   return (
     <form
       className="space-y-4"
@@ -250,6 +270,10 @@ function ManageUser({
     success: "Account updated",
     onSuccess: onDone,
   });
+  const resetMfa = useRpcMutation("users.resetMfa", {
+    invalidate: ["users."],
+    success: "Two-step verification reset — they'll re-enrol at next sign-in",
+  });
   return (
     <div className="space-y-5">
       <SheetHeader>
@@ -293,6 +317,17 @@ function ManageUser({
               {setActive.error.message}
             </p>
           )}
+          <div className="mt-4">
+            <ConfirmButton
+              variant="outline"
+              title="Reset two-step verification?"
+              description="Use this when they've lost their authenticator. They're signed out and must set up a new authenticator at next sign-in. Super admins only."
+              confirmLabel="Reset"
+              onConfirm={() => resetMfa.mutateAsync({ userId: user.user_id })}
+            >
+              Reset two-step verification
+            </ConfirmButton>
+          </div>
         </div>
       )}
     </div>

@@ -2,67 +2,73 @@
 
 ## Hosting model
 
-The project is Lovable-connected and builds a **Cloudflare Workers** bundle through Nitro
-(`bun run build` → `.output/`, `wrangler.json` generated). Recommended production path:
+Self-hosted with Docker Compose on one Linux server (e.g. a DigitalOcean Droplet): PostgreSQL 16, the
+Node.js app (`node .output/server/index.mjs`, built by Nitro's `node-server` preset), Caddy for automatic
+HTTPS, and a scheduler for backups and the daily job. **Step-by-step: docs/12-DEPLOY_DIGITALOCEAN.md.**
 
-1. **Lovable publish** (default) — pushes to the connected branch deploy automatically; Lovable serves the
-   `/__l5e/` asset CDN used by the original logo/video pointers.
-2. **Self-managed Cloudflare** (alternative) — `bun run build && npx wrangler deploy --config .output/server/wrangler.json`.
-   If you leave Lovable hosting, re-upload the logo, about image and hero video through the CMS Media library
-   first (the `/__l5e/` pointers only resolve on Lovable).
+There is no Supabase or Cloudflare dependency. Any host that runs Docker (or Node 22 + PostgreSQL 14+)
+works.
 
-Database/Auth/Storage: Supabase (Lovable Cloud project `ywfrbqonpnlsnguvqjrq` per `supabase/config.toml`).
+> **Brand assets after leaving Lovable hosting.** The original logo, About image and hero video are
+> referenced as `/__l5e/…` pointers that only resolve on Lovable's CDN, and the binaries are not in the
+> repository. Until they are re-uploaded, the site shows its built-in fallbacks (text wordmark, gradient
+> hero, no About photo). Fix: download the originals (from Lovable or your own copies), upload them in
+> **AMCMS → Website content → Media library**, and set them as the logo / hero video / About image in the
+> corresponding CMS sections, then publish.
 
 ## Environment variables
 
-See `.env.example`. Server secrets (`SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `IP_HASH_SALT`,
-`CRON_SECRET`, `TURNSTILE_SECRET_KEY`) go in the hosting provider's secret store — never in Git or `VITE_*`.
+See `.env.example`. Secrets (`AUTH_SECRET`, `IP_HASH_SALT`, `CRON_SECRET`, database passwords,
+`RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`) live only in the server's `.env` (`chmod 600`) — never in Git
+or `VITE_*` variables.
 
 ## Release procedure
 
-1. CI green on the PR (typecheck, lint, unit/authorization tests, DB migration tests, build, E2E + axe).
-2. **Back up the database** (on-demand backup or `supabase db dump`). Record the timestamp.
-3. Apply migrations to production: `supabase db push` (or Lovable Cloud migration run). Both AMCMS
-   migrations are additive and idempotent.
-4. Deploy the application.
-5. Smoke test: home page, contact submission (check it appears in AMCMS → CRM → Website submissions),
-   driver registration + status link, staff sign-in + MFA, one dispatch job create/cancel.
-6. Configure Supabase Auth settings (docs/06) if not yet done.
+1. CI green on the PR (typecheck, lint, unit/authorization tests, DB migration tests, build, self-hosted
+   integration test, Docker build, E2E + axe).
+2. On the server: `./deploy/backup.sh` (record the file name).
+3. `git pull && docker compose up -d --build` — the app container applies pending migrations before it
+   starts serving (`docker compose logs app` shows them).
+4. Smoke test: home page, contact submission (check it appears in AMCMS → CRM → Website submissions),
+   driver registration + status link, staff sign-in + MFA, one upload, one dispatch job create/cancel.
 
 ## Rollback
 
-* **App:** redeploy the previous build (Lovable version history, or `wrangler rollback`).
-* **Database:** the AMCMS migrations only add objects; the previous app version ignores them, so app
-  rollback does not require DB rollback. If a DB rollback is truly needed, restore the pre-release backup
-  into a new project / PITR to the recorded timestamp — never hand-drop tables holding live data.
+* **App:** `git checkout <previous tag/commit> && docker compose up -d --build`.
+* **Database:** migrations only add objects; the previous app version ignores them, so an app rollback
+  does not require a DB rollback. If one is truly needed, restore the pre-release dump with
+  `deploy/restore.sh` — never hand-drop tables holding live data.
 
 ## DNS & SSL checklist
 
-- [ ] `amconsultingllc.net` and `www` point to the hosting provider (Lovable custom domain or Cloudflare Workers route)
-- [ ] `www` → apex 301 redirect (or the reverse — pick one canonical; code assumes `https://amconsultingllc.net`)
-- [ ] Cloudflare SSL mode **Full (strict)**, "Always use HTTPS", minimum TLS 1.2, HSTS enabled
+- [ ] `amconsultingllc.net` and `www` A records point to the Droplet IP (Caddy redirects `www` → apex)
+- [ ] Certificate issued (check `docker compose logs caddy`); `http://` redirects to `https://`
+- [ ] If Cloudflare proxies the domain: SSL mode **Full (strict)**
 - [ ] Resend domain verified: SPF, DKIM and DMARC (`p=quarantine` once stable) records added
 - [ ] `LEAD_FROM_EMAIL` uses the verified domain
-- [ ] `PUBLIC_SITE_URL` / `VITE_PUBLIC_SITE_URL` set to the canonical origin
-- [ ] Supabase Auth → URL configuration: Site URL and redirect allow-list set to the canonical origin
+- [ ] `PUBLIC_SITE_URL` set to the canonical origin (it is also baked into the browser build)
 
 ## Scheduled maintenance
 
 `POST /api/cron/maintenance` with `Authorization: Bearer $CRON_SECRET`, **daily**. It publishes due scheduled
 CMS sections, creates in-app reminders 30 days before truck registration/insurance/maintenance dates and
 document expirations, flags privacy requests due within 7 days, and expires stale estimates. It is
-idempotent (deduplicated notifications). Options: Cloudflare Cron Trigger calling the route, a GitHub
-Actions `schedule`, or any uptime/cron service.
+idempotent (deduplicated notifications) and also prunes expired sessions/tokens. The Docker `scheduler`
+service calls it every day at ~06:00 UTC over the internal network; Caddy blocks `/api/cron/*` from the
+internet.
 
 ## Monitoring
 
 * **Logs:** the server writes structured JSON (`ts`, `level`, `msg`, `rid`, `op`, …) with secret redaction.
-  Enable Cloudflare Workers Logs / Logpush to a log store. Alert on `level=error` and on `AUDIT WRITE FAILED`.
-* **Errors:** add Sentry (or equivalent) — `@sentry/cloudflare` for the Worker and `@sentry/react` in
+  View with `docker compose logs app`; Docker rotates nothing by default, so set log rotation
+  (`/etc/docker/daemon.json`: `{"log-driver":"local","log-opts":{"max-size":"20m","max-file":"5"}}`) or ship
+  logs to a store. Alert on `level=error` and on `AUDIT WRITE FAILED`.
+* **Errors:** add Sentry (or equivalent) — `@sentry/node` on the server and `@sentry/react` in
   `__root.tsx`'s error boundary (existing `reportLovableError` hook is the integration point). Not installed
   here because it requires a DSN.
 * **Email delivery:** AMCMS → Security & Audit Logs → Email delivery shows sent / failed / skipped.
-* **Uptime:** monitor `/` and `/robots.txt`.
+* **Uptime:** monitor `https://YOUR_DOMAIN/api/health` (checks the database) and `/`. DigitalOcean
+  Monitoring can alert on Droplet CPU, memory and disk.
 
 ## Data retention runbook (quarterly)
 
@@ -70,7 +76,7 @@ Targets are configured in AMCMS → System Settings → Data retention. Retentio
 process** (legal holds and business-record obligations vary):
 
 ```sql
--- Review before deleting; run as the service role / SQL editor.
+-- Review before deleting; run in: docker compose exec db psql -U amcms -d amcms
 select count(*) from contact_submissions where created_at < now() - interval '730 days';
 delete from contact_submissions where created_at < now() - interval '730 days';
 delete from driver_registrations where status = 'rejected' and decided_at < now() - interval '365 days';
@@ -83,4 +89,5 @@ reviewed change.
 
 ## Backup & restore
 
-See docs/04-DATABASE.md. Also back up the private `documents` storage bucket separately.
+See docs/04-DATABASE.md and docs/12 §7. Nightly dumps include the database; uploaded files are
+archived alongside (`backups/storage-*.tar.gz`). Copy both off the server.

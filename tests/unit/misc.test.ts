@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-vi.mock("@/integrations/supabase/client.server", () => ({ supabaseAdmin: {} }));
 import { buildResourceSchema, sanitizeSearchTerm } from "@/lib/shared/resource-schema";
 import { RESOURCES } from "@/lib/shared/resources";
 import { CMS_SECTIONS, cmsSectionSchema, getCmsSection } from "@/lib/shared/cms-schema";

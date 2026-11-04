@@ -3,6 +3,7 @@ import { isRole, permissionsForRoles, type Permission, type Role } from "@/lib/s
 import { audit } from "./audit.server";
 import { db } from "./db.server";
 import { env } from "./env.server";
+import { query } from "./pg/pool.server";
 
 export type StaffContext = {
   userId: string;
@@ -18,7 +19,7 @@ export type StaffContext = {
 
 type Claims = { sub?: string; email?: string; aal?: string; [k: string]: unknown };
 
-/** Loads roles + profile for an authenticated Supabase user. Does not enforce anything. */
+/** Loads roles + profile for an authenticated user. Does not enforce anything. */
 export async function loadStaff(
   userId: string,
   claims: Claims,
@@ -86,8 +87,13 @@ export async function maybeBootstrapSuperAdmin(
 ): Promise<boolean> {
   const target = env.bootstrapSuperAdminEmail();
   if (!target || !ctx.email || ctx.email.toLowerCase() !== target) return false;
-  const meta = claims.user_metadata as { email_verified?: boolean } | undefined;
-  if (claims.email_verified === false || meta?.email_verified === false) return false;
+  void claims;
+  // Only an address proven by completing an emailed invite/reset link qualifies.
+  const verified = await query(
+    "SELECT 1 FROM auth.users WHERE id = $1 AND email_verified_at IS NOT NULL",
+    [ctx.userId],
+  );
+  if (!verified.rows.length) return false;
   const { count, error } = await db()
     .from("user_roles")
     .select("id", { head: true, count: "exact" })

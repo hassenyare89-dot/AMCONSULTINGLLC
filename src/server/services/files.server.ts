@@ -8,6 +8,7 @@ import {
 import { audit } from "../audit.server";
 import { actorOf, can, requirePermission, type StaffContext } from "../authz.server";
 import { check, db } from "../db.server";
+import * as storage from "../storage.server";
 import { sha256Hex } from "../crypto.server";
 
 // ---- content sniffing -------------------------------------------------------------------
@@ -117,12 +118,10 @@ export async function uploadMedia(ctx: StaffContext, file: File, alt: string) {
   const k = classifyMedia(bytes);
   const sha = await sha256Hex(bytes);
   const path = `${k.kind}/${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}.${k.ext}`;
-  const up = await db()
-    .storage.from("media")
-    .upload(path, bytes, { contentType: k.mime, cacheControl: "31536000", upsert: false });
-  if (up.error)
-    throw new AppError("INTERNAL", "Upload failed. Is the 'media' storage bucket configured?");
-  const publicUrl = db().storage.from("media").getPublicUrl(path).data.publicUrl;
+  await storage.putObject("media", path, bytes).catch(() => {
+    throw new AppError("INTERNAL", "Upload failed. Check that STORAGE_DIR is writable.");
+  });
+  const publicUrl = storage.publicUrl(path);
   const row = check(
     await db()
       .from("media_assets")
@@ -201,14 +200,9 @@ export async function uploadDocument(ctx: StaffContext, file: File, metaRaw: unk
     version = prev.data.version + 1;
   }
   const path = `${meta.entityType}/${meta.entityId || "general"}/${crypto.randomUUID()}.${k.ext}`;
-  const up = await db()
-    .storage.from("documents")
-    .upload(path, bytes, { contentType: k.mime, upsert: false });
-  if (up.error)
-    throw new AppError(
-      "INTERNAL",
-      "Upload failed. Is the private 'documents' storage bucket configured?",
-    );
+  await storage.putObject("documents", path, bytes).catch(() => {
+    throw new AppError("INTERNAL", "Upload failed. Check that STORAGE_DIR is writable.");
+  });
   const row = check(
     await db()
       .from("documents")
@@ -295,15 +289,11 @@ export async function documentDownloadUrl(ctx: StaffContext, id: string) {
       "FORBIDDEN",
       "This file was flagged by malware scanning and cannot be downloaded.",
     );
-  const signed = await db()
-    .storage.from("documents")
-    .createSignedUrl(data.storage_path, 60, { download: data.filename });
-  if (signed.error || !signed.data)
-    throw new AppError("INTERNAL", "Could not create download link.");
+  const url = storage.signedDocumentUrl(data.storage_path, 60, data.filename);
   await audit(actorOf(ctx), "document.download", "document", id, `Downloaded “${data.title}”`, {
     sensitivity: data.sensitivity,
   });
-  return { url: signed.data.signedUrl };
+  return { url };
 }
 
 export async function archiveDocument(ctx: StaffContext, id: string) {

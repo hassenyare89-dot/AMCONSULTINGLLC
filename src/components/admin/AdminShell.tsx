@@ -24,8 +24,8 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { rpc, useRpc } from "@/lib/admin/rpc";
+import { signOut as endSession } from "@/lib/auth/client";
+import { useRpc } from "@/lib/admin/rpc";
 import { AdminSessionProvider, type AdminSession } from "@/lib/admin/session";
 import type { Permission } from "@/lib/shared/permissions";
 import { Button } from "@/components/ui/button";
@@ -74,10 +74,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(
     async (reason?: "timeout") => {
-      await rpc("session.event", {
-        event: reason === "timeout" ? "session_timeout" : "logout",
-      }).catch(() => {});
-      await supabase.auth.signOut();
+      await endSession(reason);
       qc.clear();
       navigate({ to: "/auth", search: reason ? { reason } : {} });
     },

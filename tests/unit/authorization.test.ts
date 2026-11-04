@@ -9,7 +9,6 @@ vi.mock("@/server/db.server", () => ({
   },
   check: (r: { data: unknown }) => r.data,
 }));
-vi.mock("@/integrations/supabase/client.server", () => ({ supabaseAdmin: {} }));
 
 import { OPS } from "@/server/rpc/registry.server";
 import { assertStaff, requirePermission, type StaffContext } from "@/server/authz.server";

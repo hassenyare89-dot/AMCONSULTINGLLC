@@ -148,6 +148,7 @@ export const OPS: Record<string, Op> = {
   "users.invite": op((ctx, i, { request }) => admin.inviteStaff(ctx, i, request)),
   "users.setRoles": op((ctx, i) => admin.setStaffRoles(ctx, i)),
   "users.setActive": op((ctx, i) => admin.setStaffActive(ctx, i)),
+  "users.resetMfa": op((ctx, i) => admin.resetStaffMfa(ctx, i)),
   "audit.list": op((ctx, i) => admin.listAudit(ctx, i)),
   "audit.logins": op((ctx, i) => admin.listLoginEvents(ctx, i)),
   "notifications.deliveries": op((ctx, i) => admin.deliveryLog(ctx, i)),

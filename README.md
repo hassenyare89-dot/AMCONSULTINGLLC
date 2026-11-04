@@ -8,31 +8,50 @@ documents, website content, reporting, users, compliance and audit.
 |---|---|
 | Framework | TanStack Start (React 19, TanStack Router, SSR) · Vite · Tailwind CSS 4 · shadcn/Radix |
 | 3D / motion | Three.js · React Three Fiber · Drei · Motion (framer-motion) |
-| Data / auth | Supabase (Postgres + RLS, Auth with TOTP MFA, Storage) |
-| Hosting | Cloudflare Workers via Nitro (Lovable-managed) |
+| Data | PostgreSQL 16 (plain Postgres, RLS, migrations in `db/`) via `pg` |
+| Auth | Built in: scrypt passwords, server-side sessions (HttpOnly cookie), TOTP MFA, invites/resets |
+| Files | Local disk / Docker volume (public media + HMAC-signed private documents) |
+| Hosting | Self-hosted: Docker Compose (Node server + Postgres + Caddy HTTPS) — e.g. a DigitalOcean Droplet |
 | Email | Resend (optional; everything is persisted even without it) |
 
-## Quick start
+## Deploy (production)
+
+On a Linux server with Docker — full walkthrough in
+[docs/12-DEPLOY_DIGITALOCEAN.md](docs/12-DEPLOY_DIGITALOCEAN.md):
+
+```bash
+cp .env.example .env        # set domain + random secrets (never commit .env)
+docker compose up -d --build
+docker compose exec app node scripts/create-admin.mjs you@example.com "Your Name"
+```
+
+## Local development
+
+Needs Bun and a PostgreSQL 14+ server you can reach.
 
 ```bash
 bun install
-cp .env.example .env   # fill in Supabase values (never commit .env)
+createdb amcms   # or any empty database
+export DATABASE_URL=postgresql://localhost/amcms
+node scripts/migrate.mjs
+node scripts/create-admin.mjs you@example.com "Your Name"   # prints a one-time link
 bun run dev
 ```
 
-Apply database migrations (`supabase/migrations/`) with the Supabase CLI or Lovable Cloud, then bootstrap
-the first administrator — see [docs/09-ADMIN_GUIDE.md](docs/09-ADMIN_GUIDE.md).
+Migrations (`db/migrations/`) are applied by `scripts/migrate.mjs` (also run automatically by the Docker
+container on start). Uploads go to `./.storage` unless `STORAGE_DIR` is set.
 
 ## Scripts
 
 | Command | What it does |
 |---|---|
 | `bun run dev` | Development server |
-| `bun run build` | Production build (Cloudflare Workers bundle in `.output/`) |
+| `bun run build` | Production build (standalone Node server in `.output/`, run with `node .output/server/index.mjs`) |
 | `bun run typecheck` | Strict TypeScript |
 | `bun run lint` | ESLint (+ Prettier rules) |
 | `bun run test` | Vitest unit + authorization tests |
 | `bun run test:db` | Applies all migrations to a throwaway local Postgres and runs RLS/constraint tests |
+| `./scripts/test-integration.sh` | After a build: runs the real server against a throwaway Postgres and tests forms, sign-in, MFA, uploads, sign-out (API + browser) |
 | `bun run test:e2e` | Playwright end-to-end + axe accessibility tests |
 
 ## Documentation
@@ -50,5 +69,8 @@ the first administrator — see [docs/09-ADMIN_GUIDE.md](docs/09-ADMIN_GUIDE.md)
 | [09 Admin guide](docs/09-ADMIN_GUIDE.md) | Onboarding and day-to-day use of AMCMS |
 | [10 Test report](docs/10-TEST_REPORT.md) | What was run and the actual results |
 | [11 Handover](docs/11-HANDOVER.md) | Final implementation report, blockers and next actions |
+| [12 Deploy on DigitalOcean](docs/12-DEPLOY_DIGITALOCEAN.md) | Docker Compose deployment, first admin, updates, backups/restore |
 
-> **Lovable:** this project syncs with Lovable (see `AGENTS.md`). Don't rewrite pushed history.
+> **Lovable:** this project syncs with Lovable (see `AGENTS.md`). Don't rewrite pushed history. The app now
+> needs a Node server and PostgreSQL, so Lovable's built-in preview/hosting (Cloudflare + Supabase) no longer
+> runs the back end — deploy with Docker instead.

@@ -3,9 +3,9 @@ import { stringParams } from "@/lib/shared/search";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { AuthCard } from "@/components/site/AuthCard";
-import { supabase } from "@/integrations/supabase/client";
+import { getSession, signIn } from "@/lib/auth/client";
 import { Button } from "@/components/ui/button";
-import { Field, FormError, fieldCls, postJson } from "@/components/site/forms";
+import { Field, FormError, fieldCls } from "@/components/site/forms";
 
 export const Route = createFileRoute("/auth/")({
   validateSearch: stringParams("reason"),
@@ -25,8 +25,8 @@ function AuthPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/admin" });
+    getSession().then((session) => {
+      if (session) navigate({ to: "/admin" });
     });
   }, [navigate]);
 
@@ -36,12 +36,7 @@ function AuthPage() {
     setLoading(true);
     setError(null);
     try {
-      const r = await postJson<{ session: { access_token: string; refresh_token: string } }>(
-        "/api/auth/sign-in",
-        { email: fd.get("email"), password: fd.get("password") },
-      );
-      const { error } = await supabase.auth.setSession(r.session);
-      if (error) throw error;
+      await signIn(String(fd.get("email") ?? ""), String(fd.get("password") ?? ""));
       navigate({ to: "/admin" });
     } catch (err) {
       setError((err as Error).message ?? "Sign-in failed");

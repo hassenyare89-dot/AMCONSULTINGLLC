@@ -56,8 +56,8 @@ DO $$ BEGIN
 EXCEPTION WHEN insufficient_privilege THEN NULL; END $$;
 RESET ROLE;
 
--- 5. Behavioural checks as service_role.
-SET ROLE service_role;
+-- 5. Behavioural checks as the schema owner (the role the application connects as).
+-- (no SET ROLE: runs as the owner)
 -- rate limiter
 DO $$ BEGIN
   IF NOT public.rate_limit_hit('t:1', 2, 60) THEN RAISE EXCEPTION 'rl hit 1'; END IF;

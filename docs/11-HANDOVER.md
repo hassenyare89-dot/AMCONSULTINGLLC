@@ -43,31 +43,52 @@ rate limiting, upload content sniffing, CSP and security headers, structured log
 | `src/lib/admin.functions.ts` removed | Replaced by audited RPC; its first-admin RPC had already been revoked in the DB |
 | `bun.lock` regenerated against the public npm registry | The original lockfile pointed at a private mirror unreachable here |
 
+## Self-hosted PostgreSQL (Supabase removed)
+
+At the owner's request, Supabase (database API, Auth/MFA, Storage) was replaced by a self-hosted stack
+that runs with Docker on one Linux server (docs/12):
+
+* **Database:** plain PostgreSQL 16; the 7 original migrations are unchanged and applied by
+  `scripts/migrate.mjs`. A small parameterised query builder keeps all service code as it was.
+* **Auth:** built in — scrypt passwords, server-side sessions in an HttpOnly cookie, TOTP MFA (encrypted
+  secrets, replay protection), invite and reset links, deactivation revokes sessions. Super Admins can
+  reset another user's MFA from **Users**.
+* **Files:** local disk / Docker volume; public media at `/files/media/…`, private documents via
+  60-second HMAC-signed links.
+* **Deployment:** `Dockerfile` + `docker-compose.yml` (Postgres, app, Caddy HTTPS, scheduler for nightly
+  backups + daily maintenance), `deploy/backup.sh` / `deploy/restore.sh`, `scripts/create-admin.mjs`.
+* **Existing Supabase data is not migrated automatically.** If the old project holds data you need
+  (staff accounts, driver applications, contact submissions), export it (`pg_dump` of the `public`
+  schema) and import it before go-live; staff accounts must be re-created with `create-admin.mjs` /
+  invites because Supabase password hashes and MFA factors are not carried over.
+
 ## Verification
 
 See [10-TEST_REPORT.md](10-TEST_REPORT.md). In short: build ✅, strict typecheck ✅, ESLint ✅, unit and
-authorization tests ✅, Postgres migration/RLS tests ✅, Playwright E2E + axe ✅ (details there). **Not
-verified here:** anything requiring a live Supabase project (sign-in, MFA, saving records through the UI,
-storage uploads, email). Lighthouse scores were not measured.
+authorization tests ✅, Postgres migration/RLS tests ✅ (as a non-superuser owner, like production), and
+a self-hosted integration test ✅ that runs the built server against Postgres and exercises the contact
+form, admin provisioning, invite link, sign-in, MFA, uploads, signed document links and sign-out — in the
+API and in a real browser. The Docker Compose stack (runtime image, Postgres init, Caddy HTTPS, scheduler
+backups, create-admin, restore) was run end-to-end locally. **Not verified here:** a real DigitalOcean
+Droplet, Let's Encrypt issuance for the real domain, email delivery. Lighthouse scores were not measured.
 
 ## Required next actions (in order)
 
-1. **Review & merge** the branch `claude/magical-ramanujan-g1nlx4`.
-2. **Back up** the production database, then apply the two new migrations.
-3. **Configure Supabase Auth** (disable sign-ups, enable TOTP, redirect URLs, password length) — docs/06.
-4. **Set secrets:** `SUPABASE_SERVICE_ROLE_KEY`, `IP_HASH_SALT`, `CRON_SECRET`, `RESEND_API_KEY`
-   (+ verify sending domain), optionally Turnstile keys and `BOOTSTRAP_SUPER_ADMIN_EMAIL`.
-5. **Bootstrap the first Super Admin** and invite staff — docs/09.
-6. **Run the smoke test** in docs/07 on staging/production.
-7. **Re-upload or confirm assets**: hero video, logo, about image (docs/05).
+1. **Review & merge** the self-hosting PR.
+2. **Create the Droplet and deploy** — docs/12 (DNS, `.env` secrets, `docker compose up -d --build`).
+3. **Create the first Super Admin** with `scripts/create-admin.mjs` and invite staff — docs/09.
+4. **Re-upload the logo, About image and hero video** in the CMS Media library (the `/__l5e/` pointers only
+   work on Lovable hosting) — docs/07.
+5. **Import any data** you need from the old Supabase project, then retire it (delete or roll its keys).
+6. **Set `RESEND_API_KEY`** (+ verify the sending domain) for emails, optionally Turnstile keys.
+7. **Run the smoke test** in docs/07; **copy backups off the server**; connect uptime monitoring.
 8. **Business & legal review**: legal name, address/hours/service area, legal page drafts, FMCSA/broker
    question, retention periods — docs/08. Then publish the legal pages from the CMS.
-9. Schedule the daily `/api/cron/maintenance` call; connect error monitoring; enable Cloudflare WAF rules.
-10. Run Lighthouse against the deployed site and record results.
+9. Run Lighthouse against the deployed site and record results.
 
 ## Technical debt
 
-* Regenerate Supabase types and remove the untyped admin client / `any` lint exceptions.
+* Generate row types from the schema, type `db()`, and remove the `any` lint exceptions.
 * CSP still allows inline scripts (framework limitation) — move to nonces when available.
 * No malware scanning on uploads.
 * SMS notifications are intentionally not implemented (TCPA consent design required first).

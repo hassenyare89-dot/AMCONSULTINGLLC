@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 /**
  * Authenticated multipart upload for the media library and private documents.
- * Auth: Supabase access token in the Authorization header (same as server functions).
+ * Auth: the staff session cookie (same as server functions), plus MFA and per-permission checks.
  */
 export const Route = createFileRoute("/api/admin/upload")({
   server: {

@@ -44,6 +44,14 @@ jobs:
         run: bun run build
       - name: Install Playwright browser
         run: bunx playwright install --with-deps chromium
+      - name: Self-hosted stack integration test (Node server + Postgres + auth + storage)
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: ./scripts/test-integration.sh
+      - name: Docker image builds
+        run: docker build -t amcms:ci .
       - name: Start dev server and warm routes
         run: |
           PORT=4173 ./scripts/dev-test-env.sh > dev-server.log 2>&1 &

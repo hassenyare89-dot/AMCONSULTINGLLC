@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSession } from "@/lib/auth/middleware";
 
 /**
  * Single authenticated entry point for the AMCMS dashboard. The operation registry on the
@@ -8,7 +8,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  * permissions. Nothing here is trusted from the client except the op name and input payload.
  */
 export const adminRpc = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSession])
   .inputValidator((input: unknown) =>
     z.object({ op: z.string().min(1).max(64), input: z.unknown() }).parse(input),
   )

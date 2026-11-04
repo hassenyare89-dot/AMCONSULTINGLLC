@@ -11,6 +11,7 @@ import { DEFAULT_CONTENT, type SiteContent } from "@/lib/content/defaults";
 import { audit } from "../audit.server";
 import { actorOf, requirePermission, type StaffContext } from "../authz.server";
 import { check, db } from "../db.server";
+import { removeObject } from "../storage.server";
 import { log } from "../logger.server";
 
 // ---- public read ----------------------------------------------------------------------
@@ -372,7 +373,7 @@ export async function deleteMedia(ctx: StaffContext, id: string) {
   );
   if (user)
     throw new AppError("CONFLICT", `This file is used by “${user.key}”. Replace it there first.`);
-  await db().storage.from("media").remove([data.storage_path]);
+  await removeObject("media", data.storage_path);
   check(await db().from("media_assets").delete().eq("id", id), "Deleting media");
   await audit(actorOf(ctx), "media.delete", "media_asset", id, `Deleted media ${data.filename}`);
   return { ok: true };
