@@ -49,7 +49,7 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
-            <Logo size="footer" src={brand.logoUrl} name={brand.companyName} />
+            <Logo size="footer" tone="light" src={brand.logoUrl} name={brand.companyName} />
             <p className="mt-4 max-w-sm text-sm text-white/75">{content.footer.blurb}</p>
             {socials.length > 0 && (
               <ul className="mt-5 flex gap-3">

@@ -5,10 +5,18 @@ import { safeUrl } from "@/lib/shared/sanitize";
 
 /** Official logo with a genuine alpha channel (background removed from the artwork's pixels). */
 const LOGO = {
-  webp: "/media/am-consulting-logo-transparent.webp",
-  png: "/media/am-consulting-logo-transparent.png",
   width: 720,
   height: 305,
+  /** Original artwork colours — for light backgrounds (header). */
+  default: {
+    webp: "/media/am-consulting-logo-transparent.webp",
+    png: "/media/am-consulting-logo-transparent.png",
+  },
+  /** Same artwork with the lettering lightened — for dark backgrounds (footer). */
+  light: {
+    webp: "/media/am-consulting-logo-transparent-light.webp",
+    png: "/media/am-consulting-logo-transparent-light.png",
+  },
 };
 const ALT = "AM Consulting & Hauling — Efficient, Reliable, On-Time";
 
@@ -26,10 +34,13 @@ export function Logo({
   src,
   name = "AM Consulting & Hauling",
   size = "header",
+  tone = "default",
 }: {
   src?: string;
   name?: string;
   size?: keyof typeof SIZES;
+  /** "light" = version for dark backgrounds. */
+  tone?: "default" | "light";
   /** @deprecated kept for call-site compatibility; the transparent logo needs no backing. */
   light?: boolean;
 }) {
@@ -61,10 +72,10 @@ export function Logo({
         <img ref={img} src={custom} alt={name} className={imgCls} onError={() => setFailed(true)} />
       ) : (
         <picture>
-          <source srcSet={LOGO.webp} type="image/webp" />
+          <source srcSet={LOGO[tone].webp} type="image/webp" />
           <img
             ref={img}
-            src={LOGO.png}
+            src={LOGO[tone].png}
             alt={ALT}
             width={LOGO.width}
             height={LOGO.height}
