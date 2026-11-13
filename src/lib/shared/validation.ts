@@ -6,12 +6,14 @@ import {
   REGISTRATION_AVAILABILITY,
   REGISTRATION_TRUCK_TYPES,
   GEORGIA_COUNTIES,
+  OTHER_TAX_DOC_TYPES,
   SERVICE_TYPES,
   US_STATES,
 } from "./domain";
 
 /** Public form contracts shared by the browser (UX validation) and server (authoritative). */
 const MATERIAL_VALUES = MATERIALS.map((m) => m.value) as [string, ...string[]];
+const OTHER_TAX_DOC_VALUES = OTHER_TAX_DOC_TYPES.map((t) => t.value) as [string, ...string[]];
 const GEORGIA_COUNTY_VALUES = [...GEORGIA_COUNTIES] as [string, ...string[]];
 
 const optionalText = (max: number) => z.string().trim().max(max).optional().or(z.literal(""));
@@ -96,6 +98,7 @@ export const DriverRegistrationSchema = z.object({
     .transform((v) => v === "yes"),
   materials: optionalMulti(MATERIAL_VALUES),
   travelRadius: z.enum(["25", "50", "100", "statewide", ""]).optional(),
+  otherTaxDocType: z.enum([...OTHER_TAX_DOC_VALUES, ""]).optional(),
   notes: optionalText(1500),
   attestGeorgia: z.literal(true, {
     error: "Please confirm your truck is insured, registered and authorized to operate in Georgia",

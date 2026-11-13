@@ -214,6 +214,34 @@ async function main() {
     assert.equal(after, before);
   });
 
+  await step(
+    "driver registration accepts an optional other tax document with its type",
+    async () => {
+      const fd = attachAll(
+        driverForm({ ownerName: "Smoke Driver Tax", otherTaxDocType: "1099-nec" }),
+      );
+      fd.append("docOtherTax", pdf, "1099.pdf");
+      const r = await call("/api/public/driver", { form: fd, withCookie: false });
+      assert.equal(r.status, 200, r.text);
+      assert.ok(r.json.documents.includes("Other tax document (Form 1099-NEC)"), r.text);
+      const docs = await db.query(
+        "SELECT title, sensitivity FROM public.documents WHERE entity_id = $1 AND title LIKE 'Other tax document%'",
+        [r.json.id],
+      );
+      assert.equal(docs.rows.length, 1);
+      assert.equal(docs.rows[0].sensitivity, "restricted");
+      assert.match(docs.rows[0].title, /Form 1099-NEC/);
+    },
+  );
+
+  await step("an other tax document without its type is refused", async () => {
+    const fd = attachAll(driverForm());
+    fd.append("docOtherTax", pdf, "tax.pdf");
+    const r = await call("/api/public/driver", { form: fd, withCookie: false });
+    assert.equal(r.status, 400, r.text);
+    assert.equal(r.json.details?.field, "otherTaxDocType");
+  });
+
   await step("driver registration requires all four documents", async () => {
     const fd = attachAll(driverForm(), ["docW9"]);
     const r = await call("/api/public/driver", { form: fd, withCookie: false });

@@ -4,6 +4,8 @@ import {
   DRIVER_APP_PUBLIC_LABEL,
   DRIVER_UPLOADS,
   MATERIALS,
+  OTHER_TAX_DOC_TYPES,
+  REQUIRED_DRIVER_UPLOADS,
   PAYLOAD_UNITS,
   PRIVACY_POLICY_VERSION,
   TRAVEL_RADIUS,
@@ -272,13 +274,21 @@ export async function submitDriverRegistration(
   if (await guard(ctx, "driver", input)) return { id: null, statusUrl: null, delivered: false };
   // Validate attachments before saving anything, so a bad file never leaves a half-saved record.
   // All four documents are required for a registration.
-  for (const u of DRIVER_UPLOADS)
+  for (const u of REQUIRED_DRIVER_UPLOADS)
     if (!files.some((f) => f.field === u.field && f.file.size > 0))
       throw new AppError("VALIDATION", `${u.label}: please attach this document.`, {
         field: u.field,
       });
   const { prepareDriverUploads, storeDriverUploads } = await import("./files.server");
+  const otherTax = files.find((f) => f.field === "docOtherTax" && f.file.size > 0);
+  if (otherTax && !input.otherTaxDocType)
+    throw new AppError("VALIDATION", "Choose which tax form you are uploading.", {
+      field: "otherTaxDocType",
+    });
   const uploads = await prepareDriverUploads(files);
+  for (const u of uploads)
+    if (u.label === "Other tax document" && input.otherTaxDocType)
+      u.label = `Other tax document (${labelFor(OTHER_TAX_DOC_TYPES, input.otherTaxDocType)})`;
   const serviceArea = input.counties.join(", ");
   const ipHash = await hashIp(ctx.ip);
   const now = new Date().toISOString();
@@ -390,7 +400,7 @@ export async function submitDriverRegistration(
          ["Availability", labelsFor(AVAILABILITY, availability)],
          ["Documents received", attached.length ? attached.join(", ") : "None yet"],
        ])}
-       <p style="color:#4B5563;margin-top:20px"><strong>What happens next:</strong> we review your details${attached.length < DRIVER_UPLOADS.length ? " and may ask for any missing documents (CDL, insurance certificate, W-9, truck registration)" : ""} before any loads are dispatched.</p>
+       <p style="color:#4B5563;margin-top:20px"><strong>What happens next:</strong> we review your details${attached.length < REQUIRED_DRIVER_UPLOADS.length ? " and may ask for any missing documents (CDL, insurance certificate, W-9, truck registration)" : ""} before any loads are dispatched.</p>
        ${emailButton("Check application status", statusUrl)}
        <p style="font-size:12px;color:#6B7280">This private link expires in 90 days. Don't forward it.</p>`,
       {

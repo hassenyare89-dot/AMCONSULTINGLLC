@@ -29,6 +29,21 @@ test.describe("form validation (client)", () => {
     await expect(page.locator("#fld-ownerName")).toBeFocused();
   });
 
+  test("optional tax document is not required but needs a type when attached", async ({ page }) => {
+    await gotoReady(page, "/drivers");
+    await page.getByRole("button", { name: "Submit registration" }).click();
+    await expect(page.getByText("W-9: please attach this document.")).toBeVisible();
+    await expect(page.getByText("Other tax document: please attach")).toHaveCount(0);
+    await page.locator("#fld-docOtherTax").setInputFiles({
+      name: "1099.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.4\n%%EOF\n"),
+    });
+    await page.getByRole("button", { name: "Submit registration" }).click();
+    await expect(page.getByText("Choose which tax form you are uploading.")).toBeVisible();
+    await expect(page.locator("#fld-otherTaxDocType option")).toHaveCount(7);
+  });
+
   test("Georgia county picker searches and selects several counties", async ({ page }) => {
     await gotoReady(page, "/drivers");
     const box = page.locator("#fld-counties");

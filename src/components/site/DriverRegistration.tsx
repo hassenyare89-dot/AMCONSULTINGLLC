@@ -7,6 +7,8 @@ import {
   CDL_CLASSES,
   DRIVER_UPLOADS,
   DRIVER_UPLOAD_MAX_BYTES,
+  OTHER_TAX_DOC_TYPES,
+  REQUIRED_DRIVER_UPLOADS,
   MATERIALS,
   PAYLOAD_UNITS,
   REGISTRATION_AVAILABILITY,
@@ -73,11 +75,14 @@ export function DriverRegistration() {
     if (!data.consentPrivacy) errs.consentPrivacy = "Please acknowledge the privacy notice";
     for (const u of DRIVER_UPLOADS) {
       const f = fd.get(u.field);
-      if (!(f instanceof File) || f.size === 0)
-        errs[u.field] = `${u.label}: please attach this document.`;
-      else if (f.size > DRIVER_UPLOAD_MAX_BYTES)
+      const has = f instanceof File && f.size > 0;
+      if (!has && u.required) errs[u.field] = `${u.label}: please attach this document.`;
+      else if (has && f.size > DRIVER_UPLOAD_MAX_BYTES)
         errs[u.field] = `${u.label}: file is too large (max 10 MB).`;
     }
+    const otherTax = fd.get("docOtherTax");
+    if (otherTax instanceof File && otherTax.size > 0 && !fd.get("otherTaxDocType"))
+      errs.otherTaxDocType = "Choose which tax form you are uploading.";
     if (Object.keys(errs).length) {
       setErrors(errs);
       setFormError("Please fix the highlighted fields.");
@@ -374,9 +379,9 @@ export function DriverRegistration() {
 
           <FormSection
             title="Documents"
-            note="All four are required. PDF, JPG, PNG or WebP, up to 10 MB each. A clear phone photo is fine. Files are stored privately and only seen by our review team."
+            note="The first four are required. PDF, JPG, PNG or WebP, up to 10 MB each. A clear phone photo is fine. Files are stored privately and only seen by our review team."
           >
-            {DRIVER_UPLOADS.map((u) => (
+            {REQUIRED_DRIVER_UPLOADS.map((u) => (
               <Field key={u.field} label={u.label} name={u.field} required error={errors[u.field]}>
                 {(p) => (
                   <input
@@ -391,6 +396,47 @@ export function DriverRegistration() {
                 )}
               </Field>
             ))}
+            <div className="space-y-4 rounded-lg border border-dashed border-border p-4 md:col-span-2">
+              <div>
+                <p className="text-sm font-semibold text-navy">Other tax document (optional)</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Have another tax form, such as a 1099 or your IRS EIN letter? Choose the type and
+                  attach it here.
+                </p>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field
+                  label="Tax form type"
+                  name="otherTaxDocType"
+                  error={errors.otherTaxDocType}
+                  help="Required if you attach a file."
+                >
+                  {(p) => (
+                    <select {...p} className={fieldCls} defaultValue="">
+                      <option value="">Select…</option>
+                      {OTHER_TAX_DOC_TYPES.map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </Field>
+                <Field label="Tax document file" name="docOtherTax" error={errors.docOtherTax}>
+                  {(p) => (
+                    <input
+                      {...p}
+                      type="file"
+                      accept={ACCEPT}
+                      className={cn(
+                        fieldCls,
+                        "file:mr-3 file:rounded file:border-0 file:bg-secondary file:px-3 file:py-1 file:text-sm file:font-medium file:text-navy",
+                      )}
+                    />
+                  )}
+                </Field>
+              </div>
+            </div>
           </FormSection>
 
           <FormSection title="Notes">

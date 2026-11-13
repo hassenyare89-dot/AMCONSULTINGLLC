@@ -261,23 +261,54 @@ export const GEORGIA_COUNTIES = [
   "Worth",
 ] as const;
 
-/** Documents a driver can attach when registering (all optional). */
+/** Documents a driver attaches when registering: four required, plus one optional tax form. */
 export const DRIVER_UPLOADS = [
-  { field: "docCdl", label: "CDL", category: "driver_registration", sensitivity: "restricted" },
+  {
+    field: "docCdl",
+    label: "CDL",
+    category: "driver_registration",
+    sensitivity: "restricted",
+    required: true,
+  },
   {
     field: "docInsurance",
     label: "Insurance certificate",
     category: "insurance",
     sensitivity: "confidential",
+    required: true,
   },
-  { field: "docW9", label: "W-9", category: "driver_registration", sensitivity: "restricted" },
+  {
+    field: "docW9",
+    label: "W-9",
+    category: "driver_registration",
+    sensitivity: "restricted",
+    required: true,
+  },
   {
     field: "docRegistration",
     label: "Truck registration",
     category: "vehicle_registration",
     sensitivity: "confidential",
+    required: true,
+  },
+  {
+    field: "docOtherTax",
+    label: "Other tax document",
+    category: "driver_registration",
+    sensitivity: "restricted",
+    required: false,
   },
 ] as const;
+export const REQUIRED_DRIVER_UPLOADS = DRIVER_UPLOADS.filter((u) => u.required);
+/** Types for the optional "other tax document" upload. */
+export const OTHER_TAX_DOC_TYPES = opts([
+  ["1099-nec", "Form 1099-NEC"],
+  ["1099-misc", "Form 1099-MISC"],
+  ["ein-letter", "IRS EIN letter (CP 575 / 147C)"],
+  ["w-8ben", "Form W-8BEN"],
+  ["state-tax", "Georgia / state tax form"],
+  ["other", "Other tax form"],
+] as const);
 export const DRIVER_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 
 // ---- fleet ------------------------------------------------------------------------

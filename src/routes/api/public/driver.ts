@@ -13,9 +13,9 @@ export const Route = createFileRoute("/api/public/driver")({
           const intake = await import("@/server/services/intake.server");
           const type = request.headers.get("content-type") ?? "";
           if (type.startsWith("multipart/form-data")) {
-            // 4 documents x 10 MB + form fields.
+            // 5 documents x 10 MB + form fields.
             const len = Number(request.headers.get("content-length") ?? "0");
-            if (len > 42 * 1024 * 1024)
+            if (len > 52 * 1024 * 1024)
               throw new AppError("BAD_REQUEST", "Attachments are too large (max 10 MB each).");
             let fd: FormData;
             try {
