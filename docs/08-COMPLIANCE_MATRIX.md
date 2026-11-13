@@ -28,3 +28,22 @@ Legend — Applicability: *Likely* / *Possible* / *Unlikely* / *Unknown*.
 
 Legal-review sign-off of each legal page (store in Documents → Business policy), dispatch agreements, carrier
 COIs and W-9s, retention approvals, privacy request handling notes (in AMCMS), and any licences/authority.
+
+## Update — November 13, 2026: legal pages published
+
+The owner supplied a "Privacy & Website Policy" and asked for it to be published. The Privacy Policy,
+Terms of Use (from its "Website Use Policy" part), Cookie Policy and Accessibility Statement are now
+published without draft notices, effective **November 13, 2026** (`PRIVACY_POLICY_VERSION`
+`2026-11-13`). At the owner's request the "Children" section was removed.
+
+The text was checked against what the site actually does and corrected where the supplied draft was
+out of date: the driver form now collects CDL, W-9, insurance and registration documents (stored
+privately, restricted access); IPs are stored only as one-way hashes; retention periods match the
+admin settings (24 / 12 / 24 months); Cloudflare Turnstile is listed where enabled.
+
+A first-visit cookie notice (essential storage only, "Accept" stored with the policy version)
+links to the Privacy and Cookie policies.
+
+This is a factual-accuracy check, not legal advice. Retention deletion remains the manual quarterly
+process in docs/07. If the published CMS content in a running database still holds older legal text,
+update it under Website CMS → Legal.

@@ -486,7 +486,7 @@ export const PRIVACY_REQUEST_STATUS = opts([
 ] as const);
 
 /** Version string recorded with every consent; bump when the privacy notice changes materially. */
-export const PRIVACY_POLICY_VERSION = "2026-11-02-draft";
+export const PRIVACY_POLICY_VERSION = "2026-11-13";
 
 export const US_STATES = [
   "AL",
