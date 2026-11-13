@@ -18,6 +18,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { Toaster } from "@/components/ui/sonner";
+import { CookieConsent } from "@/components/site/CookieConsent";
 
 function NotFoundComponent() {
   return (
@@ -212,6 +213,7 @@ function RootComponent() {
             <Outlet />
           </main>
           <Footer />
+          <CookieConsent />
         </div>
       )}
       <Toaster richColors position="top-center" />

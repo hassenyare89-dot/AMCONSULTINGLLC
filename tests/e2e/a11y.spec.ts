@@ -69,3 +69,42 @@ test.describe("motion preferences", () => {
     await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true);
   });
 });
+
+test.describe("cookie notice", () => {
+  test("shows on first visit, links to the policies, and stays dismissed after Accept", async ({
+    page,
+  }) => {
+    await gotoReady(page, "/", { cookieNotice: true });
+    const notice = page.getByRole("region", { name: "Cookie notice" });
+    await expect(notice).toBeVisible();
+    await expect(notice.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute(
+      "href",
+      "/privacy",
+    );
+    await expect(notice.getByRole("link", { name: "Cookie Policy" })).toHaveAttribute(
+      "href",
+      "/cookies",
+    );
+    const results = await new AxeBuilder({ page })
+      .include('[aria-label="Cookie notice"]')
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+      .analyze();
+    expect(results.violations).toEqual([]);
+    await notice.getByRole("button", { name: "Accept" }).click();
+    await expect(notice).toHaveCount(0);
+    await page.reload();
+    await page.waitForSelector("html[data-hydrated='true']");
+    await expect(page.getByRole("region", { name: "Cookie notice" })).toHaveCount(0);
+  });
+
+  test("published legal pages carry no draft notices", async ({ page }) => {
+    for (const path of ["/privacy", "/terms", "/cookies", "/accessibility"]) {
+      await gotoReady(page, path);
+      const text = await page.locator("main").innerText();
+      expect(text, path).not.toMatch(/draft|\[confirm|to be verified|counsel to/i);
+    }
+    await gotoReady(page, "/privacy");
+    await expect(page.getByRole("heading", { name: /Children/ })).toHaveCount(0);
+    await expect(page.getByText("Last updated: November 13, 2026")).toBeVisible();
+  });
+});
