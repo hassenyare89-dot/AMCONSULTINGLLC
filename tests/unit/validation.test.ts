@@ -99,6 +99,9 @@ describe("public form contracts", () => {
     });
     expect(bad({ cdlClass: "C" })).toBe(false);
     expect(bad({ travelRadius: "500" })).toBe(false);
+    expect(bad({ otherTaxDocType: "1099-nec" })).toBe(true);
+    expect(bad({ otherTaxDocType: "" })).toBe(true);
+    expect(bad({ otherTaxDocType: "passport" })).toBe(false);
     expect(bad({ materials: ["uranium"] })).toBe(false);
   });
   it("quote request requires consent and a known service", () => {
